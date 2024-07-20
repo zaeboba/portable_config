@@ -57,7 +57,8 @@ local options = {
 	-- avc (h264/AAC)
 	-- avc-nvenc (h264-NVENC/AAC)
 	-- webm-vp8 (libvpx/libvorbis)
-	-- gif
+	-- HEVCAMF
+  -- gif
 	-- mp3 (libmp3lame)
 	-- and raw (rawvideo/pcm_s16le).
 	output_format = "webm-vp8",
@@ -992,6 +993,75 @@ do
   WebmVP8 = _class_0
 end
 formats["webm-vp8"] = WebmVP8()
+local HevcAMF
+do
+  local _class_0
+  local _parent_0 = Format
+  local _base_0 = {
+    getPreFilters = function(self)
+      local colormatrixFilter = {
+        ["bt.709"] = "bt709",
+        ["bt.2020"] = "bt2020",
+        ["smpte-240m"] = "smpte240m"
+      }
+      local ret = { }
+      local colormatrix = mp.get_property_native("video-params/colormatrix")
+      if colormatrixFilter[colormatrix] then
+        append(ret, {
+          "lavfi-colormatrix=" .. tostring(colormatrixFilter[colormatrix]) .. ":bt601"
+        })
+      end
+      return ret
+    end,
+    getFlags = function(self)
+      return {
+        "--ovcopts-add=threads=" .. tostring(options.threads),
+        "--ovcopts-add=rc=cqp",
+        "--ovcopts-add=qp_i=28",
+        "--ovcopts-add=qp_p=28",
+        "--ovcopts-add=qp_b=28"
+      }
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.displayName = "HEVC (AMF)"
+      self.supportsTwopass = true
+      self.videoCodec = "hevc_amf"
+      self.audioCodec = "aac"
+      self.outputExtension = "mp4"
+      self.acceptsBitrate = true
+    end,
+    __base = _base_0,
+    __name = "HevcAMF",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  HevcAMF = _class_0
+end
+formats["hevc-amf"] = HevcAMF()
 local WebmVP9
 do
   local _class_0
@@ -2562,7 +2632,8 @@ do
         "webm-vp8",
         "gif",
         "mp3",
-        "raw"
+        "raw",
+        "hevc-amf"
       }
       local formatOpts = {
         possibleValues = (function()
