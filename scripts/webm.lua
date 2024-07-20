@@ -1014,12 +1014,13 @@ do
       return ret
     end,
     getFlags = function(self)
+      local crf_value = tostring(options.crf) -- используем значение CRF из настроек
       return {
         "--ovcopts-add=threads=" .. tostring(options.threads),
         "--ovcopts-add=rc=cqp",
-        "--ovcopts-add=qp_i=28",
-        "--ovcopts-add=qp_p=28",
-        "--ovcopts-add=qp_b=28"
+        "--ovcopts-add=qp_i=" .. crf_value,
+        "--ovcopts-add=qp_p=" .. crf_value,
+        "--ovcopts-add=qp_b=" .. crf_value
       }
     end
   }
