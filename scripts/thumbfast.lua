@@ -4,6 +4,12 @@
 --
 -- Built for easy integration in third-party UIs.
 
+--[[
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+]]
+
 local options = {
     -- Socket path (leave empty for auto)
     socket = "",
@@ -122,7 +128,7 @@ if options.direct_io then
     end
 end
 
-local file = nil
+local file
 local file_bytes = 0
 local spawned = false
 local disabled = false
@@ -133,21 +139,16 @@ local script_written = false
 
 local dirty = false
 
-local x = nil
-local y = nil
-local last_x = x
-local last_y = y
+local x, y
+local last_x, last_y
 
-local last_seek_time = nil
+local last_seek_time
 
-local effective_w = options.max_width
-local effective_h = options.max_height
-local real_w = nil
-local real_h = nil
-local last_real_w = nil
-local last_real_h = nil
+local effective_w, effective_h = options.max_width, options.max_height
+local real_w, real_h
+local last_real_w, last_real_h
 
-local script_name = nil
+local script_name
 
 local show_thumbnail = false
 
@@ -156,7 +157,7 @@ local filters_runtime = {["hflip"]=true, ["vflip"]=true}
 local filters_all = {["hflip"]=true, ["vflip"]=true, ["lavfi-crop"]=true, ["crop"]=true}
 
 local tone_mappings = {["none"]=true, ["clip"]=true, ["linear"]=true, ["gamma"]=true, ["reinhard"]=true, ["hable"]=true, ["mobius"]=true}
-local last_tone_mapping = nil
+local last_tone_mapping
 
 local last_vf_reset = ""
 local last_vf_runtime = ""
@@ -166,11 +167,12 @@ local last_rotate = 0
 local par = ""
 local last_par = ""
 
+local last_crop = nil
+
 local last_has_vid = 0
 local has_vid = 0
-local vidoff = false
 
-local file_timer = nil
+local file_timer
 local file_check_period = 1/60
 
 local allow_fast_seek = true
@@ -306,20 +308,29 @@ local function vf_string(filters, full)
     local vf = ""
     local vf_table = properties["vf"]
 
-    -- if vf_table and #vf_table > 0 then
-        -- for i = #vf_table, 1, -1 do
-            -- if filters[vf_table[i].name] then
-                -- local args = ""
-                -- for key, value in pairs(vf_table[i].params) do
-                    -- if args ~= "" then
-                        -- args = args .. ":"
-                    -- end
-                    -- args = args .. key .. "=" .. value
-                -- end
-                -- vf = vf .. vf_table[i].name .. "=" .. args .. ","
-            -- end
-        -- end
-    -- end
+    if (properties["video-crop"] or "") ~= "" then
+        vf = "lavfi-crop="..string.gsub(properties["video-crop"], "(%d*)x?(%d*)%+(%d+)%+(%d+)", "w=%1:h=%2:x=%3:y=%4")..","
+        local width = properties["video-out-params"] and properties["video-out-params"]["dw"]
+        local height = properties["video-out-params"] and properties["video-out-params"]["dh"]
+        if width and height then
+            vf = string.gsub(vf, "w=:h=:", "w="..width..":h="..height..":")
+        end
+    end
+
+    if vf_table and #vf_table > 0 then
+        for i = #vf_table, 1, -1 do
+            if filters[vf_table[i].name] then
+                local args = ""
+                for key, value in pairs(vf_table[i].params) do
+                    if args ~= "" then
+                        args = args .. ":"
+                    end
+                    args = args .. key .. "=" .. value
+                end
+                vf = vf .. vf_table[i].name .. "=" .. args .. ","
+            end
+        end
+    end
 
     if (full and options.tone_mapping ~= "no") or options.tone_mapping == "auto" then
         if properties["video-params"] and properties["video-params"]["primaries"] == "bt.2020" then
@@ -346,10 +357,10 @@ local function vf_string(filters, full)
 end
 
 local function calc_dimensions()
-    local width = properties["video-params"] and properties["video-params"]["dw"]
-    local height = properties["video-params"] and properties["video-params"]["dh"]
+    local width = properties["video-out-params"] and properties["video-out-params"]["dw"]
+    local height = properties["video-out-params"] and properties["video-out-params"]["dh"]
     if not width or not height then return end
-	
+
     local scale = properties["display-hidpi-scale"] or 1
 
     if width / height > options.max_width / options.max_height then
@@ -359,8 +370,8 @@ local function calc_dimensions()
         effective_h = math.floor(options.max_height * scale + 0.5)
         effective_w = math.floor(width / height * effective_h + 0.5)
     end
-	
-	local v_par = properties["video-out-params"] and properties["video-out-params"]["par"] or 1
+
+    local v_par = properties["video-out-params"] and properties["video-out-params"]["par"] or 1
     if v_par == 1 then
         par = ":force_original_aspect_ratio=decrease"
     else
@@ -372,19 +383,9 @@ local info_timer = nil
 
 local function info(w, h)
     local rotate = properties["video-params"] and properties["video-params"]["rotate"]
-    local image = properties["current-tracks"] and properties["current-tracks"]["video"] and properties["current-tracks"]["video"]["image"]
-    local albumart = image and properties["current-tracks"]["video"]["albumart"]
+    local image = properties["current-tracks/video"] and properties["current-tracks/video"]["image"]
+    local albumart = image and properties["current-tracks/video"]["albumart"]
 
-	if mp.get_property_native("vid") then vidoff = false else
-		allcount = mp.get_property_native("track-list/count")
-		vidcount = 0
-		for i = 0, allcount do
-			if mp.get_property_native("track-list/" .. i .. "/type") == "video" then vidcount = vidcount + 1 end
-		end
-		if vidcount > 0 then has_vid = 1
-			if mp.get_property_native("vid") == false then vidoff = true else vidoff = false end
-		end
-	end
     disabled = (w or 0) == 0 or (h or 0) == 0 or
         has_vid == 0 or
         (properties["demuxer-via-network"] and not options.network) or
@@ -442,7 +443,6 @@ local function spawn(time)
 
     local vid = properties["vid"]
     has_vid = vid or 0
-	if vidoff then vid = 1 end
 
     local args = {
         mpv_path, "--no-config", "--msg-level=all=no", "--idle", "--pause", "--keep-open=always", "--really-quiet", "--no-terminal",
@@ -745,8 +745,7 @@ local function thumb(time, r_x, r_y, script)
     script_name = script
     if last_x ~= x or last_y ~= y or not show_thumbnail then
         show_thumbnail = true
-        last_x = x
-        last_y = y
+        last_x, last_y = x, y
         draw(real_w, real_h, script)
     end
 
@@ -770,9 +769,8 @@ local function watch_changes()
 
     local old_w = effective_w
     local old_h = effective_h
-	if vidoff == false then
-		calc_dimensions()
-	end
+
+    calc_dimensions()
 
     local vf_reset = vf_string(filters_reset)
     local rotate = properties["video-rotate"] or 0
@@ -781,7 +779,7 @@ local function watch_changes()
         old_h ~= effective_h or
         last_vf_reset ~= vf_reset or
         (last_rotate % 180) ~= (rotate % 180) or
-        par ~= last_par
+        par ~= last_par or last_crop ~= properties["video-crop"]
 
     if resized then
         last_rotate = rotate
@@ -816,6 +814,7 @@ local function watch_changes()
     last_vf_reset = vf_reset
     last_rotate = rotate
     last_par = par
+    last_crop = properties["video-crop"]
     last_has_vid = has_vid
 
     if not spawned and not disabled and options.spawn_first and resized then
@@ -840,24 +839,13 @@ local function update_tracklist(name, value)
     -- current-tracks shim
     for _, track in ipairs(value) do
         if track.type == "video" and track.selected then
-            properties["current-tracks/video/image"] = track.image
-            properties["current-tracks/video/albumart"] = track.albumart
+            properties["current-tracks/video"] = track
             return
         end
     end
 end
 
 local function sync_changes(prop, val)
-	if mp.get_property_native("vid") then vidoff = false else
-		allcount = mp.get_property_native("track-list/count")
-		vidcount = 0
-		for i = 0, allcount do
-			if mp.get_property_native("track-list/" .. i .. "/type") == "video" then vidcount = vidcount + 1 end
-		end
-		if vidcount > 0 then has_vid = 1
-			if mp.get_property_native("vid") == false then vidoff = true else vidoff = false end
-		end
-	end
     update_property(prop, val)
     if val == nil then return end
 
@@ -911,7 +899,7 @@ local function on_duration(prop, val)
     allow_fast_seek = (val or 30) >= 30
 end
 
-mp.observe_property("current-tracks", "native", function(name, value)
+mp.observe_property("current-tracks/video", "native", function(name, value)
     if pre_0_33_0 then
         mp.unobserve_property(update_tracklist)
         pre_0_33_0 = false
@@ -930,6 +918,7 @@ mp.observe_property("stream-open-filename", "native", update_property)
 mp.observe_property("macos-app-activation-policy", "native", update_property)
 mp.observe_property("current-vo", "native", update_property)
 mp.observe_property("video-rotate", "native", update_property)
+mp.observe_property("video-crop", "native", update_property)
 mp.observe_property("path", "native", update_property)
 mp.observe_property("vid", "native", sync_changes)
 mp.observe_property("edition", "native", sync_changes)

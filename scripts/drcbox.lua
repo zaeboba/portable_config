@@ -14,24 +14,20 @@ Default config:
 --]]
 -- ------ config -------
 local start_keys_enabled = false  -- if true then choose the up/down keys wisely
-local key_toggle_bindings = 'ctrl+n'  -- enable/disable drcbox key bindings
-local key_toggle_drcbox = 'n'  -- enable/disable drcbox
-local key_reset_drcbox = 'alt+ctrl+n'
-local altboundary = true -- don't reset loudness gain after seeking video  (tweak by SearchDownload)
-local dynamic_update = true -- reapply filter after changing options for updating params (after 0.5s timeout) 
+local key_toggle_bindingsdrc = 'Ctrl+h'  -- enable/disable drcbox key bindings
+local key_toggle_drcbox = 'H'  -- enable/disable drcbox
+local key_reset_drcbox = 'Ctrl+H'
 
 local options = {
-  {keys = {'2', '1'}, option = {'framelen',     5, 10, 8000,  200,  200 } },
-  {keys = {'4', '3'}, option = {'gausssize',    2,  3,  301,   31,   31 } },
-  {keys = {'6', '5'}, option = {'peak',      0.01,  0,    1, 0.95, 0.95 } },
-  {keys = {'8', '7'}, option = {'maxgain',      1,  1,  100,   10,   10 } },
-  {keys = {'0', '9'}, option = {'targetrms', 0.01,  0,    1,  0.9,  0.9 } },
-  {keys = {'=', '-'}, option = {'compress',   0.1,  0,   30,    0,    0 } },
-  {keys = {'w', 'q'}, option = {'coupling',     1,  0,    1,    1,    1 } },
-  {keys = {'r', 'e'}, option = {'correctdc',    1,  0,    1,    0,    0 } },
-  
+  {keys = {'2', 'w'}, option = {'framelen',     1, 10, 8000,  500,  500 } },
+  {keys = {'3', 'e'}, option = {'gausssize',    1,  3,  301,   31,   31 } },
+  {keys = {'4', 'r'}, option = {'peak',      0.01,  0,    1, 0.95, 0.95 } },
+  {keys = {'5', 't'}, option = {'maxgain',      1,  1,  100,   10,   10 } },
+  {keys = {'6', 'y'}, option = {'targetrms', 0.01,  0,    1,    0,    0 } },
+  {keys = {'7', 'u'}, option = {'coupling',     1,  0,    1,    1,    1 } },
+  {keys = {'8', 'i'}, option = {'correctdc',    1,  0,    1,    0,    0 } },
+  {keys = {'9', 'o'}, option = {'compress',   0.1,  0,   30,    0,    0 } },
 }
-
 
 local function get_cmd_full()
   f = options[1].option[5]
@@ -39,12 +35,10 @@ local function get_cmd_full()
   p = options[3].option[5]
   m = options[4].option[5]
   r = options[5].option[5]
-  s = options[6].option[5]
-  n = options[7].option[5]
-  c = options[8].option[5]
-  ab = ""
-  if altboundary then ab = ":b=1" end
-  return 'no-osd af toggle @dynaudnorm:lavfi=[dynaudnorm=f='..f..':g='..g..':p='..p..':m='..m..':r='..r..':n='..n..':c='..c..':s='..s..ab..']'
+  n = options[6].option[5]
+  c = options[7].option[5]
+  s = options[8].option[5]
+  return 'no-osd af toggle @dynaudnorm:lavfi=[dynaudnorm=f='..f..':g='..g..':p='..p..':m='..m..':r='..r..':n='..n..':c='..c..':s='..s..']'
 end
 
 local function get_cmd(option)
@@ -76,9 +70,8 @@ local function cdis()  return color('909090') end  -- grey
 local function ceq()   return iff(drcbox_enabled, color('ffff90'), cdis()) end  -- yellow-ish
 local function ckeys() return iff(bindings_enabled, color('90FF90'), cdis()) end  -- green-ish
 
-local DUR_DEFAULT = 1.5 -- seconds
+local DUR_DEFAULT = 3 -- seconds
 local osd_timer = nil
-local prev_max = 130
 -- duration: seconds, or default if missing/nil, or infinite if 0 (or negative)
 local function ass_osd(msg, duration)  -- empty or missing msg -> just clears the OSD
   duration = duration or DUR_DEFAULT
@@ -104,9 +97,10 @@ end
 local function updateOSD()
   local msg1 = fsize(70) .. 'DynAudNorm: ' .. ceq() .. iff(drcbox_enabled, 'On', 'Off')
             .. ' [' .. key_toggle_drcbox .. ']' .. cnorm()
-  local msg2 = fsize(70)
-            .. 'Key-bindings: ' .. ckeys() .. iff(bindings_enabled, 'On', 'Off')
-            .. ' [' .. key_toggle_bindings .. ']' .. cnorm()
+            .. ' Key-bindings: ' .. ckeys() .. iff(bindings_enabled, 'On', 'Off')
+            .. ' [' .. key_toggle_bindingsdrc .. '] ' .. cnorm() 
+            .. 'Reset: ' .. ckeys() .. ' [' .. key_reset_drcbox .. ']' .. cnorm()
+  local msg2 = ''
   local msg3 = ''
 
   for i = 1, #options do
@@ -114,16 +108,16 @@ local function updateOSD()
     local value = round(options[i].option[5], 2)
     local default = options[i].option[6]
     local info =
-      ceq() .. fsize(50) .. option .. ' ' .. fsize(100)
+      ceq() .. fsize(150) .. option .. ' ' .. fsize(100)
       .. iff(value ~= default and drcbox_enabled, '', cdis()) .. value .. ceq()
-      .. fsize(50) .. ckeys() .. ' [' .. options[i].keys[2] .. '/' .. options[i].keys[1] .. ']'
+      .. fsize(150) .. ckeys() .. ' [' .. options[i].keys[1] .. '/' .. options[i].keys[2] .. ']'
       .. ceq() .. fsize(100) .. cnorm()
 
      msg3 = msg3 .. '   ' .. info
   end
 
-  local nlb = '\n' .. ass('{\\an1}')  -- new line and "align bottom for next"
-  local msg = ass('{\\an1}') .. msg3 .. nlb .. msg2 .. nlb .. msg1
+  local nlb = '\n' .. ass('{\\an5}')  -- new line and "align bottom for next"
+  local msg = ass('{\\an5}') .. msg3 .. nlb .. msg2 .. nlb .. msg1
   local duration = iff(start_keys_enabled, iff(bindings_enabled and drcbox_enabled, 5, nil)
                                          , iff(bindings_enabled, 0, nil))
   ass_osd(msg, duration)
@@ -149,8 +143,7 @@ local function updateAF_options()
     mp.command(get_cmd(o))
   end
 end
-local timer2 = mp.add_timeout(0.5, function() updateAF(); updateAF() end)
-timer2:kill()
+
 local function getBind(option, delta)
   return function()  -- onKey
     option[5] = option[5] + delta
@@ -160,12 +153,7 @@ local function getBind(option, delta)
     if option[5] < option[3] then
       option[5] = option[3]
     end
-    if dynamic_update then
-      timer2:kill()
-      timer2:resume()
-    else
-      updateAF_options() --very slow and buggy
-    end
+    updateAF_options()
     updateOSD()
   end
 end
@@ -184,15 +172,6 @@ end
 
 local function toggle_drcbox()
   drcbox_enabled = not drcbox_enabled
-  if mp.get_property("input-commands") == nil then --mpv 0.37 and earlier doesn't have anti-clipping filter for volume >100
-    if drcbox_enabled then
-	  prev_max = mp.get_property("volume-max")
-	  mp.set_property("volume-max", 100)
-	  if mp.get_property_native("volume") > 100 then mp.set_property("volume", 100) end
-    else
-	  mp.set_property("volume-max", prev_max)
-    end
-  end
   updateAF()
   updateOSD()
 end
@@ -205,36 +184,7 @@ local function reset_drcbox()
   updateOSD()
 end
 
-mp.register_script_message("toggle_normalize", toggle_drcbox)
-mp.add_forced_key_binding(key_toggle_bindings, toggle_bindings)
+mp.add_forced_key_binding(key_toggle_drcbox, toggle_drcbox)
+mp.add_forced_key_binding(key_toggle_bindingsdrc, toggle_bindings)
 mp.add_forced_key_binding(key_reset_drcbox, reset_drcbox)
 if bindings_enabled then toggle_bindings(true, true) end
-
-
-mp.register_event("file-loaded", function()
-	if drcbox_enabled and mp.get_property("af") and not string.find(mp.get_property("af"), "@dynaudnorm") then
-		mp.add_timeout(0.5, updateAF)
-	end
-	if drcbox_enabled == false and mp.get_property("af") and string.find(mp.get_property("af"), "@dynaudnorm") then
-		drcbox_enabled = true
-        if mp.get_property("input-commands") == nil then
-            prev_max = mp.get_property("volume-max")
-            mp.set_property("volume-max", 100)
-            if mp.get_property_native("volume") > 100 then mp.set_property("volume", 100) end
-        end
-        local filter = string.sub(string.match(mp.get_property("af"), "dynaudnorm=[^,]*"), 12)
-        
-        local function update(n, param)
-            local val = string.match(filter, param .. "=[%d%.]*")
-            if val then options[n].option[5] = tonumber(string.sub(val, 3)) end
-        end
-        update(1, "f")
-        update(2, "g")
-        update(3, "p")
-        update(4, "m")
-        update(5, "r")
-        update(6, "s")
-        update(7, "n")
-        update(8, "c")
-	end
-end)
