@@ -16,7 +16,7 @@ local confirmDelete = false
 -- The rate (in seconds) at which the bookmarker needs to refresh its interface; lower is more frequent
 local rate = 1.5
 -- The filename for the bookmarks file
-local bookmarkerName = "bookmarker.log"
+local bookmarkerName = "bookmarker.json"
 
 -- All the "global" variables and utilities; don't touch these
 local utils = require 'mp.utils'
@@ -262,10 +262,17 @@ end
 
 -- Get the filepath of a file from the mpv config folder
 function getFilepath(filename)
-  if isWindows() then
-  	return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/" .. filename
-  else	
-	return os.getenv("HOME") .. "/.config/mpv/" .. filename
+  local config_dir = mp.find_config_file('.')
+  
+  if config_dir then
+    config_dir = config_dir:gsub("[/\\]+%.$", "")
+    return config_dir .. "/" .. filename
+  else
+    if isWindows() then
+      return os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/" .. filename
+    else
+      return os.getenv("HOME") .. "/.config/mpv/" .. filename
+    end
   end
 end
 
@@ -592,7 +599,7 @@ function jumpToBookmark(slot)
       if parsePath(mp.get_property("path")) == bookmark["path"] then
         mp.set_property_number("time-pos", bookmark["pos"])
       else
-        mp.commandv("loadfile", parsePath(bookmark["path"]), "replace", "start="..bookmark["pos"])
+        mp.commandv("loadfile", parsePath(bookmark["path"]), "replace", "0", "start="..bookmark["pos"])
       end
       if closeAfterLoad then abort(styleOn.."{\\c&H00FF00&}{\\b1}Successfully found file for bookmark:{\\r}\n"..displayName(bookmark["name"])) end
     else
