@@ -236,7 +236,7 @@ if ytdl_raw_options ~= nil and ytdl_raw_options:find("cookies=") ~= nil then
 end
 
 --Try to detect youtube-dl/yt-dlp executable
-local executables = {"/opt/homebrew/bin/yt-dlp", "youtube-dl", "yt-dlp_x86", "yt-dlp_macos", "yt-dlp_min", "yt-dlc"}
+local executables = {"yt-dlp", "youtube-dl", "yt-dlp_x86", "yt-dlp_macos", "yt-dlp_min", "yt-dlc"}
 local function detect_executable()
     local function detect_executable_callback(success, ret, _)
         if not success or ret.status ~= 0 then
