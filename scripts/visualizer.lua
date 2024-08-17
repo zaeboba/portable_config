@@ -32,7 +32,7 @@ local opts = {
 
 -- key bindings
 -- cycle visualizer
-local cycle_key = "c"
+local cycle_key = ""
 
 if not (mp.get_property("options/lavfi-complex", "") == "") then
     return
