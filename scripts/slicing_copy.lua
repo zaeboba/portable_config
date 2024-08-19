@@ -9,7 +9,8 @@ local ext_map = {
 }
 local o = {
     ffmpeg_path = "ffmpeg",
-    target_dir = "~~/cutfragments",
+    -- target_dir = "~~/cutfragments",
+    target_dir = os.getenv("USERPROFILE") .. "\\Videos\\",
     overwrite = false, -- whether to overwrite exist files
     vcodec = "copy",
     acodec = "copy",
