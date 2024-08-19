@@ -9,14 +9,10 @@ local ext_map = {
 }
 local o = {
     ffmpeg_path = "ffmpeg",
---    ffmpeg_path = "/opt/homebrew/bin/ffmpeg",
-target_dir = "/home/geektips/Videos/mpv",
---    target_dir = "~~/cutfragments",
+    target_dir = "~~/cutfragments",
     overwrite = false, -- whether to overwrite exist files
     vcodec = "copy",
     acodec = "copy",
---    vcodec = "libx265",
---    acodec = "libopus",
     debug = false,
 }
 
@@ -207,6 +203,6 @@ elseif not file.is_dir then
 end
 o.target_dir = mp.command_native({ "expand-path", o.target_dir })
 
-mp.add_key_binding("b", "slicing_mark", toggle_mark)
-mp.add_key_binding("a", "slicing_audio", toggle_audio)
-mp.add_key_binding("B", "clear_slicing_mark", clear_toggle_mark)
+mp.add_key_binding("F4", "slicing_mark", toggle_mark)
+mp.add_key_binding("F5", "slicing_audio", toggle_audio)
+mp.add_key_binding("C", "clear_slicing_mark", clear_toggle_mark)

@@ -469,5 +469,5 @@ end
 
 validate_config()
 encoder.init(config, main_menu.timings)
-mp.add_key_binding('c', 'videoclip-menu-open', main_menu.open)
+mp.add_key_binding('', 'videoclip-menu-open', main_menu.open)
 -- mp.msg.warn("Press 'c' to open the videoclip menu.")
