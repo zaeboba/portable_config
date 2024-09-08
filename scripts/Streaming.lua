@@ -106,4 +106,12 @@ function kill_programs_on_exit()
     kill_program_2_on_exit()
 end
 
-mp.register_event("shutdown", kill_programs_on_exit)
+-- mp.register_event("shutdown", kill_programs_on_exit)
+
+-- я не знаю как сделать проверку запускались ли проги чтобы при закрытии вызывать убийство процесса, если расскоментировать строчку выше
+-- они будут "убиваться" даже если небыли запущены, а это выглядит уёбищно
+-- если вы пограмист и гений, почините скрипт за меня, пожалуйста.
+
+-- I don't know how to check if the programs were running so that when closing, it calls for killing the process. If I uncomment the line above,
+-- they will be "killed" even if they weren't started, and that looks terrible.
+-- If you are a programmer and a genius, please fix the script for me.
