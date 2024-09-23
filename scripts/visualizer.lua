@@ -323,6 +323,8 @@ local function visualizer_hook()
         end
     end
 
+    if atrack == nil then return end
+    
     local lavfi = select_visualizer(vtrack)
     --prevent endless loop
     if lavfi ~= mp.get_property("options/lavfi-complex", "") then
