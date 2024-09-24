@@ -1,3 +1,9 @@
+--[[
+ Обновления ищите здесь
+	Look for updates here
+		https://github.com/Dudemanguy/mpv-manga-reader
+]]
+
 local ext = {
 	".7z",
 	".avif",

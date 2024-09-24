@@ -1,3 +1,9 @@
+--[[
+ Обновления ищите здесь
+	Look for updates here
+		https://github.com/mfcc64/mpv-scripts и вот этот человек все дорабатывает | and this is the man who's finalizing everything https://github.com/christoph-heinrich/mpv-visualizer-equalizer/tree/skip_no_audio
+]]
+
 -- various audio visualization
 
 local opts = {
