@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//!DESC Anime4K-v3.2-Denoise-Bilateral-Mode-Luma
+//!DESC [Anime4K_Denoise_Bilateral_Mode][v3.2] Luma
 //!HOOK MAIN
 //!BIND HOOKED
 //!SAVE LINELUMA
@@ -35,7 +35,7 @@ vec4 hook() {
     return vec4(get_luma(HOOKED_tex(HOOKED_pos)), 0.0, 0.0, 0.0);
 }
 
-//!DESC Anime4K-v3.1-Denoise-Bilateral-Mode-Apply
+//!DESC [Anime4K_Denoise_Bilateral_Mode][v3.1] Apply
 //!HOOK MAIN
 //!BIND HOOKED
 //!BIND LINELUMA

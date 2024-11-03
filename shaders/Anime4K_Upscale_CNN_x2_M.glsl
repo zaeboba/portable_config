@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x3
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x3
 //!HOOK MAIN
 //!BIND MAIN
 //!SAVE conv2d_tf
@@ -43,7 +43,7 @@ vec4 hook() {
     result += vec4(0.014463938, -0.0031906287, 0.007015422, -0.003888468);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_tf
 //!SAVE conv2d_1_tf
@@ -75,7 +75,7 @@ vec4 hook() {
     result += vec4(0.032014452, -0.020821465, 0.0826416, -0.002838458);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_1_tf
 //!SAVE conv2d_2_tf
@@ -107,7 +107,7 @@ vec4 hook() {
     result += vec4(0.0766796, 0.08115133, -0.05703058, 0.14025708);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_2_tf
 //!SAVE conv2d_3_tf
@@ -139,7 +139,7 @@ vec4 hook() {
     result += vec4(-0.05101961, -0.060740646, -0.024465766, 0.058471628);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_3_tf
 //!SAVE conv2d_4_tf
@@ -171,7 +171,7 @@ vec4 hook() {
     result += vec4(0.0015292584, -0.043625206, -0.09429898, -0.06280405);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_4_tf
 //!SAVE conv2d_5_tf
@@ -203,7 +203,7 @@ vec4 hook() {
     result += vec4(0.04400571, -0.04015565, 0.0140529545, 0.05474095);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x3x3x8
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x3x3x8
 //!HOOK MAIN
 //!BIND conv2d_5_tf
 //!SAVE conv2d_6_tf
@@ -235,7 +235,7 @@ vec4 hook() {
     result += vec4(0.02021373, 0.0014037411, 0.0012718709, 0.017278494);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Conv-4x1x1x56
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Conv-4x1x1x56
 //!HOOK MAIN
 //!BIND conv2d_tf
 //!BIND conv2d_1_tf
@@ -281,7 +281,7 @@ vec4 hook() {
     result += vec4(0.016836504, 0.010161949, 0.021351453, 0.01278978);
     return result;
 }
-//!DESC Anime4K-v3.2-Upscale-CNN-x2-(M)-Depth-to-Space
+//!DESC [Anime4K_Upscale_CNN_x2_M][v3.2] Depth-to-Space
 //!HOOK MAIN
 //!BIND MAIN
 //!BIND conv2d_last_tf

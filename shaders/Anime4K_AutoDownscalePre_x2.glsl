@@ -23,7 +23,7 @@
 
 // For more information, please refer to <https://unlicense.org>
 
-//!DESC Anime4K-v4.0-AutoDownscalePre-x2
+//!DESC [Anime4K_AutoDownscalePre_x2][v4.0]
 //!HOOK MAIN
 //!BIND HOOKED
 //!BIND NATIVE
