@@ -719,7 +719,7 @@ function createUOSCMenu() {
         keep_open: true,
         items: [
             {
-                title: "Rows",
+                title: "Ряды",
                 hint: UOSCState.rows.toString(),
                 items: [
                     {
@@ -735,7 +735,7 @@ function createUOSCMenu() {
                 ]
             },
             {
-                title: "Columns",
+                title: "Столбцы",
                 hint: UOSCState.columns.toString(),
                 items: [
                     {
@@ -751,7 +751,7 @@ function createUOSCMenu() {
                 ]
             },
             {
-                title: "Padding",
+                title: "Отступ",
                 hint: UOSCState.padding.toString(),
                 items: [
                     {
@@ -777,7 +777,7 @@ function createUOSCMenu() {
                 ]
             },
             {
-                title: "Format",
+                title: "Формат",
                 hint: UOSCState.format,
                 icon: "image",
                 items: [
@@ -799,39 +799,39 @@ function createUOSCMenu() {
                 ]
             },
             {
-                title: "Screenshot Mode",
+                title: "Режим скриншотов",
                 hint: UOSCState.mode,
                 icon: "burst_mode",
                 items: [
                     {
-                        title: "Video only",
+                        title: "Только видео",
                         icon: UOSCState.mode === "video" ? "radio_button_checked" : "radio_button_unchecked",
                         value: uoscUpdateDispatch("mode", "video"),
                     },
                     {
-                        title: "Video + Subtitles",
+                        title: "Видео + Субтитры",
                         icon: UOSCState.mode === "subtitles" ? "radio_button_checked" : "radio_button_unchecked",
                         value: uoscUpdateDispatch("mode", "subtitles"),
                     },
                     {
-                        title: "Whole window",
+                        title: "Всё окно",
                         icon: UOSCState.mode === "window" ? "radio_button_checked" : "radio_button_unchecked",
                         value: uoscUpdateDispatch("mode", "window"),
                     },
                 ]
             },
             {
-                title: "Resize",
+                title: "Изменение размера",
                 icon: UOSCState.resize === "yes" ? "check_box" : "check_box_outline_blank",
                 value: uoscUpdateDispatch("resize", UOSCState.resize === "yes" ? "no" : "yes"),
             },
             {
-                title: "Reset",
+                title: "Сбросить",
                 icon: "restart_alt",
                 value: "script-message-to ".concat(scriptName, " uosc-menu-reset"),
             },
             {
-                title: "Create Mosaic Screenshot",
+                title: "Создать мозаику скриншотов",
                 icon: "screenshot_monitor",
                 value: "script-message-to ".concat(scriptName, " uosc-menu-execute"),
                 keep_open: false,
