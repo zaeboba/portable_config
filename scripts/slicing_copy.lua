@@ -125,7 +125,14 @@ local function cut(shift, endpos)
     cmds:arg("-c:s", "copy")
     cmds:arg("-map", string.format("v:%s?", mp.get_property_number("current-tracks/video/id", 0) - 1))
     cmds:arg("-map", string.format("a:%s?", mp.get_property_number("current-tracks/audio/id", 0) - 1))
-    cmds:arg("-map", string.format("s:%s?", mp.get_property_number("current-tracks/sub/id", 0) - 1))
+    -- cmds:arg("-map", string.format("s:%s?", mp.get_property_number("current-tracks/sub/id", 0) - 1))
+    local sub_id = mp.get_property_number("current-tracks/sub/id", 0) - 1
+    if sub_id ~= -1 then
+        cmds:arg("-map", string.format("s:%s?", sub_id))
+    else
+        cmds:arg("-sn") -- отключить субтитры, если их нет
+    end
+
     cmds:arg(not copy_audio and "-an" or nil)
     cmds:arg("-avoid_negative_ts", "make_zero")
     cmds:arg("-async", "1")
