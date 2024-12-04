@@ -571,7 +571,7 @@ def FPS_CTRL(
 
 	if fps_in > fps_max :
 		if fps_ret :
-			raise Exception("源帧率超过限制的范围，已临时中止。")
+			raise Exception("Частота исходных кадров превышает предельную и временно приостановлена.")
 		else :
 			output = FPS_CHANGE(input=input, fps_in=fps_in, fps_out=fps_out if fps_out else fps_max)
 	else :
