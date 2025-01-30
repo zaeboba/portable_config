@@ -7,6 +7,7 @@
 local opt = require 'mp.options'
 local utils = require 'mp.utils'
 local msg = require 'mp.msg'
+local is_windows = package.config:sub(1,1) == '\\'
 
 package.path = mp.command_native({"expand-path", "~~/script-modules/?.lua;"})..package.path
 local input_success, input = pcall(require, "user-input-module")
@@ -42,6 +43,14 @@ local async = nil
 
 local toggle_overlay -- function
 
+local function mkdir(path)
+	if is_windows then
+		--io.popen('mkdir "'..path..'"')
+	else
+		os.execute('mkdir -p "'..path..'"')
+	end
+end
+
 local function send_request(method, url)
 	if #api_key > 0 then
 		local request = mp.command_native({
@@ -49,7 +58,7 @@ local function send_request(method, url)
 			capture_stdout = true,
 			capture_stderr = true,
 			playback_only = false,
-			args = {"curl", "-X", method, url}
+			args = {"curl", "-X", method, url, "-H", "Authorization: MediaBrowser Token=\""..api_key.."\""}
 		})
 		return utils.parse_json(request.stdout)
 	end
@@ -82,6 +91,27 @@ local function update_list()
 	for i=list_start[layer],list_start[layer]+magic_num do
 		if i > #items then break end
 		local index = ""
+		-- handles multi-part episodes
+		local new_items = {}
+		local part_count = 1
+		local base_name = ""
+		if items[i].PartCount ~= nil then part_count = items[i].PartCount end
+		items[i].PartCount = 1
+		if part_count > 1 then
+			local part_url = options.url.."/Videos/"..items[i].Id.."/AdditionalParts"
+			new_items = send_request("GET", part_url).Items
+			base_name = items[i].Name
+			items[i].Name = base_name.." (Part 1)"
+		end
+		for j=1,part_count-1 do
+			table.insert(items, i+j, {})
+			for k,v in pairs(items[i]) do --copy whole entry
+				items[i+j][k] = v
+			end
+			items[i+j].Id = new_items[j].Id
+			items[i+j].Name = base_name.." (Part "..(j+1)..")"
+		end
+		--
 		if items[i].IndexNumber and items[i].IsFolder == false then
 			index = items[i].IndexNumber..". "
 		else
@@ -99,7 +129,19 @@ end
 local scale = 2 -- const
 
 local function show_image(success, result, error, userdata)
-	if success == true and shown == true then
+	if not success then
+		msg.error("Failed to create image: " .. error)
+		return
+	elseif result.error_string == "init" then
+		msg.error("Failed to create image: mpv not found.")
+		return
+	elseif result.status ~= 0 then
+		if not result.killed_by_us then
+			msg.error("Failed to create image: mpv exited with status: " .. result.status .. ".")
+		end
+		return
+	end
+	if shown == true then
 		mp.command_native({
 			name = "overlay-add",
 			id = 0,
@@ -121,15 +163,15 @@ local function update_image(item)
 	local width = math.floor(ow/(3*scale))
 	local height = 0
 	local filepath = ""
+	if async ~= nil then mp.abort_async_command(async) end
 	mp.commandv("overlay-remove", "0")
 	if item.ImageTags.Primary ~= nil then
 		height = math.floor(width/item.PrimaryImageAspectRatio)
 		filepath = options.image_path.."/"..item.Id.."_"..width.."_"..height..".bgra"
-		if async ~= nil then mp.abort_async_command(async) end
 		async = mp.command_native_async({
 			name = "subprocess",
 			playback_only = false,
-			args = { "mpv", options.url.."/Items/"..item.Id.."/Images/Primary?api_key="..api_key.."&width="..width.."&height="..height, "--no-config", "--msg-level=all=no", "--vf=lavfi=[format=bgra]", "--of=rawvideo", "--o="..filepath }
+			args = { "mpv", options.url.."/Items/"..item.Id.."/Images/Primary?width="..width.."&height="..height, "--no-config", "--msg-level=all=no", "--vf=lavfi=[format=bgra]", "--of=rawvideo", "--o="..filepath }
 		}, function(success, result, error) show_image(success, result, error, {width, height, filepath}) end)
 	end
 end
@@ -173,7 +215,7 @@ end
 local function update_overlay()
 	overlay.data = "{\\fs16}Loading..."
 	overlay:update()
-	local base_url = options.url.."/Items?api_key="..api_key.."&userID="..user_id.."&parentId="..parent_id[layer].."&enableImageTypes=Primary&imageTypeLimit=1&fields=PrimaryImageAspectRatio,Taglines,Overview"
+	local base_url = options.url.."/Items?userID="..user_id.."&parentId="..parent_id[layer].."&enableImageTypes=Primary&imageTypeLimit=1&fields=PrimaryImageAspectRatio,Taglines,Overview"
 	if layer == 2 then
 		base_url = base_url.."&sortBy=SortName"
 	else
@@ -201,11 +243,11 @@ local function play_video()
 		mp.command("playlist-clear")
 		for i = 1, #items do
 			if i ~= selection[layer] then
-				mp.commandv("loadfile", options.url.."/Videos/"..items[i].Id.."/stream?static=true&api_key="..api_key, "append")
+				mp.commandv("loadfile", options.url.."/Videos/"..items[i].Id.."/stream?static=true", "append")
 			end
 		end
 	end
-	mp.commandv("loadfile", options.url.."/Videos/"..video_id.."/stream?static=true&api_key="..api_key, "insert-at-play", selection[layer]-1)
+	mp.commandv("loadfile", options.url.."/Videos/"..video_id.."/stream?static=true", "insert-at-play", selection[layer]-1)
 	mp.set_property("force-media-title", items[selection[layer]].Name)
 	current_selection = selection[layer]
 end
@@ -287,7 +329,7 @@ local function check_percent()
 	local pos = mp.get_property_number("percent-pos")
 	if pos then
 		if pos > 95 and #video_id > 0 then
-			send_request("POST", options.url.."/Users/"..user_id.."/PlayedItems/"..video_id.."?api_key="..api_key)
+			send_request("POST", options.url.."/Users/"..user_id.."/PlayedItems/"..video_id)
 			items[current_selection].UserData.Played = true
 			video_id = ""
 			current_selection = nil
@@ -319,9 +361,9 @@ local function search_input()
 	input.get_user_input(search)
 end
 
--- os.execute("mkdir -p "..options.image_path)
+mkdir(options.image_path)
 mp.add_periodic_timer(1, check_percent)
-mp.add_key_binding("", "jf", toggle_overlay)
+mp.add_key_binding("Ctrl+j", "jf", toggle_overlay)
 mp.observe_property("osd-width", "number", width_change)
 mp.register_event("end-file", unpause)
 if input_success then
