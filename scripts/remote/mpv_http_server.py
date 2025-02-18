@@ -11,6 +11,7 @@ PORT = 1337
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COMMAND_FILE = os.path.join(BASE_DIR, "mpv_cmd.txt")
 CHECK_INTERVAL = 3  # Проверять MPV каждые 3 секунды
+MAX_IDLE_TIME = 5  # Максимальное время без обновления файлов (в секундах)
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="ru">
@@ -202,6 +203,10 @@ HTML_PAGE = """<!DOCTYPE html>
 """
 
 class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        # Отключаем логирование HTTP-запросов
+        pass
+
     def do_GET(self):
         command_map = {
             "/play": "set pause no",
@@ -242,7 +247,7 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/audio_track_"):
             track = self.path.split("_")[-1]
             with open(COMMAND_FILE, "w", encoding="utf-8") as f:
-                f.write("set audio " + track)
+                f.write(f"set audio {track}")
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"Audio track changed")
@@ -251,7 +256,7 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
             if track == "no":
                 sub_command = "set sid no"
             else:
-                sub_command = "set sid " + track
+                sub_command = f"set sid {track}"
             with open(COMMAND_FILE, "w", encoding="utf-8") as f:
                 f.write(sub_command)
             self.send_response(200)
@@ -281,7 +286,7 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
             if "url" in params:
                 url = params["url"][0]
                 with open(COMMAND_FILE, "w", encoding="utf-8") as f:
-                    f.write("loadfile " + url)
+                    f.write(f"loadfile {url}")
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(b"Loading file")
@@ -295,6 +300,7 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(b"Not found")
 
 def check_mpv_running():
+    last_update_time = time.time()
     while True:
         time.sleep(CHECK_INTERVAL)
         try:
@@ -306,8 +312,22 @@ def check_mpv_running():
             print("Ошибка при проверке MPV:", e)
             os._exit(0)
 
+        # Проверяем временные файлы
+        progress_file = os.path.join(BASE_DIR, "mpv_progress.js")
+        current_file = os.path.join(BASE_DIR, "mpv_current_file.js")
+        if os.path.exists(progress_file) and os.path.exists(current_file):
+            last_update_time = time.time()
+        elif time.time() - last_update_time > MAX_IDLE_TIME:
+            print("Файлы не обновлялись более 5 секунд. Завершаем сервер...")
+            os._exit(0)
+
 threading.Thread(target=check_mpv_running, daemon=True).start()
 
-with socketserver.TCPServer(("", PORT), MPVRequestHandler) as httpd:
-    print(f"HTTP сервер запущен на порту {PORT}")
-    httpd.serve_forever()
+try:
+    with socketserver.TCPServer(("", PORT), MPVRequestHandler) as httpd:
+        print(f"HTTP сервер запущен на порту {PORT}")
+        httpd.serve_forever()
+except KeyboardInterrupt:
+    print("Сервер остановлен.")
+except Exception as e:
+    print(f"Неожиданная ошибка: {e}")

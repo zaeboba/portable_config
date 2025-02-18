@@ -17,21 +17,78 @@ end
 
 msg.info("Запускаем Python сервер...")
 
--- Функция для запуска Python‑сервера в фоне
-local server_process
+-- Глобальная переменная для хранения процесса сервера
+local server_process = nil
+
+-- Функция для запуска Python-сервера в фоне
 local function start_server()
+    if server_process and server_process.pid then
+        msg.warn("Сервер уже запущен!")
+        return
+    end
+
     local args = { python_path, server_script }
     server_process = utils.subprocess({ args = args, detach = true })
     if server_process.error then
         msg.error("Ошибка запуска сервера: " .. server_process.error)
+        server_process = nil
     else
         msg.info("Python сервер запущен.")
     end
 end
 
+-- Автоматический запуск сервера при старте MPV
 start_server()
--- Если нужно, можно добавить открытие браузера через mp.add_timeout
 
+-- Добавляем возможность запуска сервера по горячей клавише (по умолчанию закомментировано)
+--[[
+mp.add_key_binding("F7", "start_python_server", function()
+    start_server()
+end)
+]]
+
+-- Функция для остановки сервера
+local function stop_server()
+    if server_process and server_process.pid then
+        msg.info("Останавливаем Python сервер...")
+        local success
+        if package.config:sub(1,1) == "\\" then
+            success = os.execute("taskkill /PID " .. server_process.pid .. " /F")
+        else
+            success = os.execute("kill " .. server_process.pid)
+        end
+        if success then
+            msg.info("Сервер успешно остановлен.")
+        else
+            msg.warn("Не удалось остановить сервер.")
+        end
+        server_process = nil
+    else
+        msg.warn("Сервер не запущен.")
+    end
+end
+
+-- Очистка временных файлов
+local function cleanup()
+    local files_to_remove = {
+        command_file,
+        script_dir .. "mpv_tracks_audio.js",
+        script_dir .. "mpv_tracks_sub.js",
+        script_dir .. "mpv_current_file.js",
+        script_dir .. "mpv_progress.js"
+    }
+
+    for _, file in ipairs(files_to_remove) do
+        local success, err = os.remove(file)
+        if not success then
+            msg.warn("Не удалось удалить файл: " .. file .. ". Ошибка: " .. (err or "неизвестная"))
+        else
+            msg.info("Удалён файл: " .. file)
+        end
+    end
+end
+
+-- Если нужно, можно добавить открытие браузера через mp.add_timeout
 -- Функция для чтения команды из mpv_cmd.txt
 local function read_command()
     local f = io.open(command_file, "r")
@@ -83,6 +140,7 @@ local function update_tracks()
         end
     end
 
+    -- Сохраняем данные в файлы
     local audio_file_path = script_dir .. "mpv_tracks_audio.js"
     local audio_file = io.open(audio_file_path, "w")
     if audio_file then
@@ -100,7 +158,8 @@ local function update_tracks()
     msg.info("Обновлены списки аудио и субтитров")
 end
 
-mp.add_periodic_timer(5, update_tracks)
+-- Вызываем update_tracks только при загрузке нового файла
+mp.register_event("file-loaded", update_tracks)
 
 ----------------------------------------------------------------
 -- Обновление текущего файла и прогресса воспроизведения
@@ -114,6 +173,7 @@ local function update_current_file()
         f:close()
     end
 end
+
 mp.register_event("file-loaded", update_current_file)
 
 local function update_progress()
@@ -126,31 +186,15 @@ local function update_progress()
         f:close()
     end
 end
+
 mp.add_periodic_timer(1, update_progress)
 
 ----------------------------------------------------------------
 -- Остановка Python сервера и очистка временных файлов при закрытии MPV
 ----------------------------------------------------------------
-local function stop_server()
-    if server_process and server_process.pid then
-        msg.info("Останавливаем Python сервер...")
-        if package.config:sub(1,1) == "\\" then
-            os.execute("taskkill /PID " .. server_process.pid .. " /F")
-        else
-            os.execute("kill " .. server_process.pid)
-        end
-    end
-end
-
-local function cleanup()
-    os.remove(command_file)
-    os.remove(script_dir .. "mpv_tracks_audio.js")
-    os.remove(script_dir .. "mpv_tracks_sub.js")
-    os.remove(script_dir .. "mpv_current_file.js")
-    os.remove(script_dir .. "mpv_progress.js")
-end
-
 mp.register_event("shutdown", function()
-    stop_server()
+    -- Пытаемся остановить сервер
+    pcall(stop_server)  -- Используем pcall, чтобы игнорировать ошибки при остановке сервера
+    -- Всегда выполняем очистку файлов
     cleanup()
 end)
