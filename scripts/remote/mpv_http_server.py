@@ -20,29 +20,13 @@ HTML_PAGE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MPV Remote</title>
   <style>
-    /* Catppuccin Mocha Theme Colors */
     :root {
         --ctp-mocha-base: #1E1E2E;
         --ctp-mocha-surface0: #313244;
         --ctp-mocha-surface1: #45475A;
-        --ctp-mocha-surface2: #585B70;
-        --ctp-mocha-overlay: #6C7086;
         --ctp-mocha-text: #CDD6F4;
         --ctp-mocha-subtext0: #A6ADC8;
-        --ctp-mocha-subtext1: #BAC2DE;
         --ctp-mocha-lavender: #B4BEFE;
-        --ctp-mocha-blue: #89B4FA;
-        --ctp-mocha-sapphire: #74C7EC;
-        --ctp-mocha-sky: #89DCEB;
-        --ctp-mocha-teal: #94E2D5;
-        --ctp-mocha-green: #A6E3A1;
-        --ctp-mocha-yellow: #F9E2AF;
-        --ctp-mocha-peach: #FAB387;
-        --ctp-mocha-maroon: #EBA0AC;
-        --ctp-mocha-red: #F38BA8;
-        --ctp-mocha-mauve: #CBA6F7;
-        --ctp-mocha-pink: #F5C2E7;
-        --ctp-mocha-flamingo: #FCA2AA;
     }
     body {
         font-family: Arial, sans-serif;
@@ -60,103 +44,202 @@ HTML_PAGE = """<!DOCTYPE html>
     h2 {
         color: var(--ctp-mocha-lavender);
     }
+    /* Группа кнопок Play, Pause, Stop – в один ряд, кнопки поменьше */
+    .control-group-inline {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    .small-button {
+        padding: 10px 15px;
+        font-size: 14px;
+        color: var(--ctp-mocha-text);
+        background-color: var(--ctp-mocha-surface1);
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: all 0.1s ease;
+        outline: none;
+    }
+    .small-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0, 0, 0, 0.25);
+    }
+    .small-button:active {
+        transform: translateY(4px);
+        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0, 0, 0, 0.2);
+    }
+    /* Грид для остальных кнопок */
+    .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
     button {
-        position: relative;
-        display: inline-block;
+        display: block;
+        width: 100%;
         padding: 15px 25px;
-        margin: 10px;
         font-size: 16px;
         font-weight: bold;
         color: var(--ctp-mocha-text);
         background-color: var(--ctp-mocha-surface1);
         border: none;
         border-radius: 10px;
-        box-shadow: 0 6px var(--ctp-mocha-surface2), 0 10px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0, 0, 0, 0.2);
         cursor: pointer;
         transition: all 0.1s ease;
         outline: none;
     }
     button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px var(--ctp-mocha-surface2), 0 12px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0, 0, 0, 0.25);
     }
     button:active {
         transform: translateY(4px);
-        box-shadow: 0 2px var(--ctp-mocha-surface2), 0 5px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0, 0, 0, 0.2);
     }
-    select {
+    select,
+    input[type="text"] {
+        display: block;
+        width: 90%;
+        max-width: 400px;
+        margin: 10px auto;
         padding: 10px;
-        margin: 10px;
         font-size: 16px;
         border-radius: 5px;
         background-color: var(--ctp-mocha-surface1);
         color: var(--ctp-mocha-text);
-        border: 1px solid var(--ctp-mocha-surface2);
-    }
-    label {
-        font-size: 18px;
-        color: var(--ctp-mocha-subtext0);
+        border: none;
     }
     progress {
         width: 80%;
         height: 20px;
-        margin: 10px;
+        margin: 10px auto;
+        display: block;
+        appearance: none;
+        -webkit-appearance: none;
+        background-color: var(--ctp-mocha-surface0);
+        border-radius: 10px;
+        overflow: hidden;
     }
-    input[type="text"] {
-        padding: 10px;
-        margin: 10px;
-        width: 70%;
-        font-size: 16px;
-        border-radius: 5px;
-        border: 1px solid var(--ctp-mocha-surface2);
-        background-color: var(--ctp-mocha-surface1);
+    progress::-webkit-progress-bar {
+        background-color: var(--ctp-mocha-surface0);
+        border-radius: 10px;
+    }
+    progress::-webkit-progress-value {
+        background-color: var(--ctp-mocha-lavender);
+        border-radius: 10px;
+    }
+    progress::-moz-progress-bar {
+        background-color: var(--ctp-mocha-lavender);
+        border-radius: 10px;
+    }
+    progress::-ms-fill {
+        background-color: var(--ctp-mocha-lavender);
+        border-radius: 10px;
+    }
+    progress::-ms-thumb {
+        background-color: var(--ctp-mocha-lavender);
+        border-radius: 10px;
+        width: 20px;
+        height: 20px;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    .modal-content {
+        background-color: var(--ctp-mocha-surface0);
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid var(--ctp-mocha-surface1);
+        border-radius: 10px;
+        width: 80%;
+        max-height: 80%;
+        overflow-y: auto;
+    }
+    .close {
         color: var(--ctp-mocha-text);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
     }
-    @media (max-width: 600px) {
-        button {
-            padding: 12px 20px;
-            font-size: 14px;
-        }
-        select {
-            padding: 8px;
-            font-size: 14px;
-        }
-        label {
-            font-size: 16px;
-        }
+    .close:hover,
+    .close:focus {
+        color: var(--ctp-mocha-lavender);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    /* Обертка для блока с Аудио, Субтитрами, прогрессом и URL */
+    .lower-section {
+        margin-top: 30px;
     }
   </style>
 </head>
 <body>
     <div id="currentFile">Нет файла</div>
     <h2>MPV Remote Control</h2>
-    <button onclick="sendCommand('play')">▶ Play</button>
-    <button onclick="sendCommand('pause')">⏸ Pause</button>
-    <button onclick="sendCommand('stop')">⏹ Stop</button>
-    <br>
-    <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
-    <button onclick="sendCommand('seek_backward')">⏪ -10 сек</button>
-    <br>
-    <button onclick="sendCommand('volup')">🔊 Громкость +</button>
-    <button onclick="sendCommand('voldown')">🔉 Громкость -</button>
-    <br>
-    <button onclick="sendCommand('fullscreen')">🔲 Fullscreen</button>
-    <button onclick="sendCommand('sub_toggle')">📝 Subtitles</button>
-    <br>
-    <label for="audioTrack">Аудио:</label>
-    <select id="audioTrack" onchange="sendTrackCommand('audio', this.value)">
-        <!-- AUDIO_TRACKS -->
-    </select>
-    <br>
-    <label for="subTrack">Субтитры:</label>
-    <select id="subTrack" onchange="sendTrackCommand('sub', this.value)">
-        <!-- SUB_TRACKS -->
-    </select>
-    <br>
-    <progress id="progressBar" value="0" max="100"></progress>
-    <br>
-    <input type="text" id="urlInput" placeholder="Вставьте ссылку сюда...">
-    <button onclick="sendLink()">Load URL</button>
+    
+    <!-- Группа кнопок Play, Pause, Stop -->
+    <div class="control-group-inline">
+        <button class="small-button" onclick="sendCommand('play')">▶ Play</button>
+        <button class="small-button" onclick="sendCommand('pause')">⏸ Pause</button>
+        <button class="small-button" onclick="sendCommand('stop')">⏹ Stop</button>
+    </div>
+    
+    <!-- Остальные кнопки управления -->
+    <div class="controls">
+        <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
+        <button onclick="sendCommand('seek_backward')">⏪ -10 сек</button>
+        <button onclick="sendCommand('volup')">🔊 Громкость +</button>
+        <button onclick="sendCommand('voldown')">🔉 Громкость -</button>
+        <button onclick="sendCommand('fullscreen')">🔲 Fullscreen</button>
+        <button onclick="sendCommand('sub_toggle')">📝 Subtitles</button>
+    </div>
+    
+    <!-- Кнопка Плейлист -->
+    <button onclick="openPlaylistModal()">Плейлист ▼</button>
+    
+    <!-- Блок с элементами ниже, с дополнительным отступом сверху -->
+    <div class="lower-section">
+      <label for="audioTrack">Аудио:</label>
+      <select id="audioTrack" onchange="sendTrackCommand('audio', this.value)">
+          <!-- AUDIO_TRACKS -->
+      </select>
+      
+      <label for="subTrack">Субтитры:</label>
+      <select id="subTrack" onchange="sendTrackCommand('sub', this.value)">
+          <!-- SUB_TRACKS -->
+      </select>
+      
+      <progress id="progressBar" value="0" max="100"></progress>
+      
+      <!-- Блок для ввода URL -->
+      <input type="text" id="urlInput" placeholder="Вставьте ссылку сюда...">
+      <button onclick="sendLink()">Load URL</button>
+    </div>
+
+    <!-- Модальное окно для плейлиста -->
+    <div id="playlistModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePlaylistModal()">&times;</span>
+            <h2>Плейлист</h2>
+            <ul id="playlistItems">
+                <!-- PLAYLIST_ITEMS -->
+            </ul>
+        </div>
+    </div>
+
     <script>
         function sendCommand(cmd) {
             fetch("/" + cmd)
@@ -169,11 +252,15 @@ HTML_PAGE = """<!DOCTYPE html>
                 .then(data => console.log(data));
         }
         function sendLink() {
-            var url = document.getElementById("urlInput").value;
+            const input = document.getElementById("urlInput");
+            const url = input.value;
             if(url) {
                 fetch("/load?url=" + encodeURIComponent(url))
                     .then(response => response.text())
-                    .then(data => console.log(data));
+                    .then(data => {
+                        console.log(data);
+                        input.value = ""; // Очищаем поле ввода после загрузки ссылки
+                    });
             }
         }
         function updateCurrentFile() {
@@ -186,10 +273,10 @@ HTML_PAGE = """<!DOCTYPE html>
             fetch("/progress")
                 .then(response => response.text())
                 .then(data => {
-                    var parts = data.split("/");
-                    var current = parseFloat(parts[0]);
-                    var total = parseFloat(parts[1]);
-                    var progressBar = document.getElementById("progressBar");
+                    const parts = data.split("/");
+                    const current = parseFloat(parts[0]);
+                    const total = parseFloat(parts[1]);
+                    const progressBar = document.getElementById("progressBar");
                     if(total > 0) {
                         progressBar.value = (current / total) * 100;
                         progressBar.max = 100;
@@ -197,6 +284,33 @@ HTML_PAGE = """<!DOCTYPE html>
                 });
         }
         setInterval(updateProgress, 1000);
+        function seekToPosition() {
+            const progressBar = document.getElementById("progressBar");
+            const seekTime = progressBar.value / 100 * parseFloat(progressBar.max);
+            fetch("/seek_to?time=" + encodeURIComponent(seekTime))
+                .then(response => response.text())
+                .then(data => console.log(data));
+        }
+        document.getElementById("progressBar").addEventListener("input", seekToPosition);
+        function updatePlaylist() {
+            fetch("/playlist")
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("playlistItems").innerHTML = data;
+                });
+        }
+        setInterval(updatePlaylist, 1000);
+        function openPlaylistModal() {
+            document.getElementById("playlistModal").style.display = "block";
+        }
+        function closePlaylistModal() {
+            document.getElementById("playlistModal").style.display = "none";
+        }
+        function playFile(index) {
+            fetch("/play_file?index=" + encodeURIComponent(index))
+                .then(response => response.text())
+                .then(data => console.log(data));
+        }
     </script>
 </body>
 </html>
@@ -280,6 +394,29 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(data.encode("utf-8"))
+        elif self.path == "/playlist":
+            try:
+                with open(os.path.join(BASE_DIR, "mpv_playlist.js"), "r", encoding="utf-8") as f:
+                    data = f.read()
+            except Exception:
+                data = "<li>Плейлист пуст</li>"
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(data.encode("utf-8"))
+        elif self.path.startswith("/seek_to"):
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            if "time" in params:
+                seek_time = params["time"][0]
+                with open(COMMAND_FILE, "w", encoding="utf-8") as f:
+                    f.write(f"seek {seek_time} absolute")
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Seeking to position")
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Bad request")
         elif self.path.startswith("/load"):
             parsed = urlparse(self.path)
             params = parse_qs(parsed.query)
@@ -290,6 +427,20 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(b"Loading file")
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Bad request")
+        elif self.path.startswith("/play_file"):
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            if "index" in params:
+                index = params["index"][0]
+                with open(COMMAND_FILE, "w", encoding="utf-8") as f:
+                    f.write(f"set playlist-pos {index}")
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Playing file from playlist")
             else:
                 self.send_response(400)
                 self.end_headers()

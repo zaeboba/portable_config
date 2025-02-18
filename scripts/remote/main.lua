@@ -42,7 +42,7 @@ start_server()
 
 -- Добавляем возможность запуска сервера по горячей клавише (по умолчанию закомментировано)
 --[[
-mp.add_key_binding("F7", "start_python_server", function()
+mp.add_key_binding("F1", "start_python_server", function()
     start_server()
 end)
 ]]
@@ -75,7 +75,8 @@ local function cleanup()
         script_dir .. "mpv_tracks_audio.js",
         script_dir .. "mpv_tracks_sub.js",
         script_dir .. "mpv_current_file.js",
-        script_dir .. "mpv_progress.js"
+        script_dir .. "mpv_progress.js",
+        script_dir .. "mpv_playlist.js"
     }
 
     for _, file in ipairs(files_to_remove) do
@@ -88,7 +89,6 @@ local function cleanup()
     end
 end
 
--- Если нужно, можно добавить открытие браузера через mp.add_timeout
 -- Функция для чтения команды из mpv_cmd.txt
 local function read_command()
     local f = io.open(command_file, "r")
@@ -133,10 +133,12 @@ local function update_tracks()
     for _, track in ipairs(track_list) do
         if track.type == "audio" then
             local title = track.title or ("Аудио " .. tostring(track.id))
-            audio_options = audio_options .. string.format('<option value="%s">%s</option>', tostring(track.id), title)
+            local selected = track.selected and "selected" or ""
+            audio_options = audio_options .. string.format('<option value="%s" %s>%s</option>', tostring(track.id), selected, title)
         elseif track.type == "sub" then
             local title = track.title or ("Субтитры " .. tostring(track.id))
-            sub_options = sub_options .. string.format('<option value="%s">%s</option>', tostring(track.id), title)
+            local selected = track.selected and "selected" or ""
+            sub_options = sub_options .. string.format('<option value="%s" %s>%s</option>', tostring(track.id), selected, title)
         end
     end
 
@@ -155,7 +157,7 @@ local function update_tracks()
         sub_file:close()
     end
 
-    msg.info("Обновлены списки аудио и субтитров")
+    msg.debug("Обновлены списки аудио и субтитров")  -- Изменено на debug
 end
 
 -- Вызываем update_tracks только при загрузке нового файла
@@ -190,11 +192,71 @@ end
 mp.add_periodic_timer(1, update_progress)
 
 ----------------------------------------------------------------
+-- Обновление плейлиста
+----------------------------------------------------------------
+local function update_playlist()
+    local playlist = mp.get_property_native("playlist")
+    if not playlist then return end
+
+    local playlist_items = ""
+    for i, item in ipairs(playlist) do
+        local title = item.title or item.filename or ("Файл " .. tostring(i))
+        local is_current = (i - 1 == mp.get_property_number("playlist-pos"))
+        if is_current then
+            playlist_items = playlist_items .. string.format('<li onclick="playFile(%d)"><strong>%s</strong></li>', i - 1, title)
+        else
+            playlist_items = playlist_items .. string.format('<li onclick="playFile(%d)">%s</li>', i - 1, title)
+        end
+    end
+
+    local playlist_file_path = script_dir .. "mpv_playlist.js"
+    local playlist_file = io.open(playlist_file_path, "w")
+    if playlist_file then
+        playlist_file:write(playlist_items)
+        playlist_file:close()
+    end
+
+    msg.debug("Обновлён плейлист")  -- Изменено на debug
+end
+
+-- Вызываем update_playlist при изменении плейлиста
+mp.observe_property("playlist", "native", function()
+    update_playlist()
+end)
+
+----------------------------------------------------------------
+-- Выбор файла из плейлиста
+----------------------------------------------------------------
+local function play_playlist_item(index)
+    mp.commandv("set", "playlist-pos", index)
+end
+
+mp.register_event("file-loaded", function()
+    local playlist_pos = mp.get_property_number("playlist-pos")
+    if playlist_pos then
+        local playlist_file_path = script_dir .. "mpv_playlist.js"
+        local playlist_file = io.open(playlist_file_path, "w")
+        if playlist_file then
+            local playlist = mp.get_property_native("playlist")
+            local playlist_items = ""
+            for i, item in ipairs(playlist) do
+                local title = item.title or item.filename or ("Файл " .. tostring(i))
+                if i - 1 == playlist_pos then
+                    playlist_items = playlist_items .. string.format('<li onclick="playFile(%d)"><strong>%s</strong></li>', i - 1, title)
+                else
+                    playlist_items = playlist_items .. string.format('<li onclick="playFile(%d)">%s</li>', i - 1, title)
+                end
+            end
+            playlist_file:write(playlist_items)
+            playlist_file:close()
+        end
+    end
+end)
+
+----------------------------------------------------------------
 -- Остановка Python сервера и очистка временных файлов при закрытии MPV
 ----------------------------------------------------------------
 mp.register_event("shutdown", function()
-    -- Пытаемся остановить сервер
     pcall(stop_server)  -- Используем pcall, чтобы игнорировать ошибки при остановке сервера
-    -- Всегда выполняем очистку файлов
     cleanup()
 end)
