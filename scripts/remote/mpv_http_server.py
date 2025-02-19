@@ -192,23 +192,23 @@ HTML_PAGE = """<!DOCTYPE html>
     
     <!-- Группа кнопок Play, Pause, Stop -->
     <div class="control-group-inline">
-        <button class="small-button" onclick="sendCommand('play')">▶ Play</button>
-        <button class="small-button" onclick="sendCommand('pause')">⏸ Pause</button>
-        <button class="small-button" onclick="sendCommand('stop')">⏹ Stop</button>
+        <button class="small-button" onclick="sendCommand('play')">▶️ Play</button>
+        <button class="small-button" onclick="sendCommand('pause')">⏸️ Pause</button>
+        <button class="small-button" onclick="sendCommand('stop')">⏹️ Stop</button>
     </div>
     
     <!-- Остальные кнопки управления -->
     <div class="controls">
-        <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
         <button onclick="sendCommand('seek_backward')">⏪ -10 сек</button>
-        <button onclick="sendCommand('volup')">🔊 Громкость +</button>
-        <button onclick="sendCommand('voldown')">🔉 Громкость -</button>
+        <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
+        <button onclick="sendCommand('voldown')">🔉 Громкость ➖</button>
+        <button onclick="sendCommand('volup')">🔊 Громкость ➕</button>
         <button onclick="sendCommand('fullscreen')">🔲 Fullscreen</button>
         <button onclick="sendCommand('sub_toggle')">📝 Subtitles</button>
     </div>
     
     <!-- Кнопка Плейлист -->
-    <button onclick="openPlaylistModal()">Плейлист ▼</button>
+    <button onclick="openPlaylistModal()">Плейлист 📜</button>
     
     <!-- Блок с элементами ниже, с дополнительным отступом сверху -->
     <div class="lower-section">
