@@ -1,3 +1,7 @@
+#  Created by: zaeboba
+#  License: 🖕
+#  Version: 20.02.2025
+
 import http.server
 import socketserver
 import os
@@ -114,38 +118,11 @@ HTML_PAGE = """<!DOCTYPE html>
         color: var(--ctp-mocha-text);
         border: none;
     }
-    progress {
+    /* Совмещенная интерактивная полоса прогресса */
+    input[type="range"]#progressBar {
         width: 80%;
-        height: 20px;
         margin: 10px auto;
         display: block;
-        appearance: none;
-        -webkit-appearance: none;
-        background-color: var(--ctp-mocha-surface0);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    progress::-webkit-progress-bar {
-        background-color: var(--ctp-mocha-surface0);
-        border-radius: 10px;
-    }
-    progress::-webkit-progress-value {
-        background-color: var(--ctp-mocha-lavender);
-        border-radius: 10px;
-    }
-    progress::-moz-progress-bar {
-        background-color: var(--ctp-mocha-lavender);
-        border-radius: 10px;
-    }
-    progress::-ms-fill {
-        background-color: var(--ctp-mocha-lavender);
-        border-radius: 10px;
-    }
-    progress::-ms-thumb {
-        background-color: var(--ctp-mocha-lavender);
-        border-radius: 10px;
-        width: 20px;
-        height: 20px;
     }
     .modal {
         display: none;
@@ -210,7 +187,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- Кнопка Плейлист -->
     <button onclick="openPlaylistModal()">Плейлист 📜</button>
     
-    <!-- Блок с элементами ниже, с дополнительным отступом сверху -->
+    <!-- Блок для элементов ниже, с дополнительным отступом сверху -->
     <div class="lower-section">
       <label for="audioTrack">Аудио:</label>
       <select id="audioTrack" onchange="sendTrackCommand('audio', this.value)">
@@ -222,7 +199,8 @@ HTML_PAGE = """<!DOCTYPE html>
           <!-- SUB_TRACKS -->
       </select>
       
-      <progress id="progressBar" value="0" max="100"></progress>
+      <!-- Совмещенная интерактивная полоса прогресса (отображение и перемотка) -->
+      <input type="range" id="progressBar" min="0" max="100" value="0">
       
       <!-- Блок для ввода URL -->
       <input type="text" id="urlInput" placeholder="Вставьте ссылку сюда...">
@@ -259,7 +237,7 @@ HTML_PAGE = """<!DOCTYPE html>
                     .then(response => response.text())
                     .then(data => {
                         console.log(data);
-                        input.value = ""; // Очищаем поле ввода после загрузки ссылки
+                        input.value = "";
                     });
             }
         }
@@ -269,6 +247,8 @@ HTML_PAGE = """<!DOCTYPE html>
                 .then(data => { document.getElementById("currentFile").textContent = data; });
         }
         setInterval(updateCurrentFile, 1000);
+        
+        // Функция обновления прогресса с сервера и синхронизации с интерактивной полосой
         function updateProgress() {
             fetch("/progress")
                 .then(response => response.text())
@@ -276,14 +256,67 @@ HTML_PAGE = """<!DOCTYPE html>
                     const parts = data.split("/");
                     const current = parseFloat(parts[0]);
                     const total = parseFloat(parts[1]);
-                    const progressBar = document.getElementById("progressBar");
-                    if(total > 0) {
-                        progressBar.value = (current / total) * 100;
-                        progressBar.max = 100;
+                    if (total > 0) {
+                        const percentage = (current / total) * 100;
+                        // Обновляем значение полосы, если пользователь не тянет её сейчас
+                        if (!window.isDragging) {
+                            progressBar.value = percentage;
+                        }
                     }
                 });
         }
         setInterval(updateProgress, 1000);
+
+        // Интерактивность полосы прогресса
+        var currentTimeSec = 0;
+        var totalTimeSec = 0;
+        window.isDragging = false;
+        var progressBar = document.getElementById("progressBar");
+
+        // Обновляем данные о текущем времени и длительности
+        setInterval(function() {
+          fetch("/progress")
+            .then(response => response.text())
+            .then(data => {
+              var parts = data.split("/");
+              if (parts.length === 2) {
+                currentTimeSec = parseFloat(parts[0]);
+                totalTimeSec = parseFloat(parts[1]);
+              }
+            });
+        }, 1000);
+
+        // Обработка начала перетаскивания
+        progressBar.addEventListener("mousedown", function() {
+          window.isDragging = true;
+        });
+        progressBar.addEventListener("touchstart", function() {
+          window.isDragging = true;
+        });
+        // По окончании перетаскивания – вычисляем смещение и отправляем команду
+        progressBar.addEventListener("mouseup", function() {
+          window.isDragging = false;
+          handleSliderChange();
+        });
+        progressBar.addEventListener("touchend", function() {
+          window.isDragging = false;
+          handleSliderChange();
+        });
+        progressBar.addEventListener("change", handleSliderChange);
+
+        function handleSliderChange() {
+          var sliderPercent = parseFloat(progressBar.value);
+          if (totalTimeSec > 0) {
+            var targetTime = sliderPercent / 100 * totalTimeSec;
+            var offset = Math.round(targetTime - currentTimeSec);
+            if (offset !== 0) {
+              fetch("/relative_seek?offset=" + encodeURIComponent(offset))
+                .then(response => response.text())
+                .then(data => console.log("Relative seek:", data));
+            }
+          }
+        }
+                setInterval(updateProgress, 1000);
         function seekToPosition() {
             const progressBar = document.getElementById("progressBar");
             const seekTime = progressBar.value / 100 * parseFloat(progressBar.max);
@@ -441,6 +474,20 @@ class MPVRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(b"Playing file from playlist")
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Bad request")
+        elif self.path.startswith("/relative_seek"):
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            if "offset" in params:
+                offset = params["offset"][0]
+                with open(COMMAND_FILE, "w", encoding="utf-8") as f:
+                    f.write(f"seek {offset}")
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Relative seek executed")
             else:
                 self.send_response(400)
                 self.end_headers()
