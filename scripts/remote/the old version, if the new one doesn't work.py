@@ -1,6 +1,7 @@
 #  Created by: zaeboba
 #  License: 🖕
-#  Version: 22.02.2025
+#  Version: 20.02.2025
+
 import http.server
 import socketserver
 import os
@@ -139,9 +140,9 @@ HTML_PAGE = """<!DOCTYPE html>
         padding: 20px;
         border: 1px solid var(--ctp-mocha-surface1);
         border-radius: 10px;
-        width: 90%;
-        max-width: 500px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        width: 80%;
+        max-height: 80%;
+        overflow-y: auto;
     }
     .close {
         color: var(--ctp-mocha-text);
@@ -159,37 +160,6 @@ HTML_PAGE = """<!DOCTYPE html>
     /* Обертка для блока с Аудио, Субтитрами, прогрессом и URL */
     .lower-section {
         margin-top: 30px;
-    }
-    /* Новый стиль для списка плейлиста */
-    #playlistSelect {
-        width: 100%;
-        margin: 10px auto;
-        padding: 10px;
-        font-size: 16px;
-        border-radius: 5px;
-        background-color: var(--ctp-mocha-surface1);
-        color: var(--ctp-mocha-text);
-        border: none;
-        overflow-y: auto;
-        white-space: normal;
-    }
-    #playlistSelect option {
-        border-bottom: 1px solid var(--ctp-mocha-surface0);
-        white-space: normal;
-        word-break: break-all;
-        padding: 5px;
-    }
-    #playlistSelect option:last-child {
-        border-bottom: none;
-    }
-    /* Медиа-запрос для мобильных устройств */
-    @media (max-width: 600px) {
-        .modal-content {
-            width: 95%;
-            max-width: 95%;
-            margin: 20% auto;
-            padding: 10px;
-        }
     }
   </style>
 </head>
@@ -242,24 +212,13 @@ HTML_PAGE = """<!DOCTYPE html>
         <div class="modal-content">
             <span class="close" onclick="closePlaylistModal()">&times;</span>
             <h2>Плейлист</h2>
-            <select id="playlistSelect" size="10">
+            <ul id="playlistItems">
                 <!-- PLAYLIST_ITEMS -->
-            </select>
+            </ul>
         </div>
     </div>
 
     <script>
-        // Флаги для предотвращения обновления при взаимодействии
-        let lastPlaylistData = "";
-        let playlistInteracting = false;
-        const playlistSelect = document.getElementById("playlistSelect");
-
-        // Отслеживаем касания/нажатия, чтобы не обновлять список, когда пользователь выбирает файл
-        playlistSelect.addEventListener("touchstart", () => { playlistInteracting = true; });
-        playlistSelect.addEventListener("mousedown", () => { playlistInteracting = true; });
-        playlistSelect.addEventListener("touchend", () => { playlistInteracting = false; });
-        playlistSelect.addEventListener("mouseup", () => { playlistInteracting = false; });
-
         function sendCommand(cmd) {
             fetch("/" + cmd)
                 .then(response => response.text())
@@ -289,7 +248,7 @@ HTML_PAGE = """<!DOCTYPE html>
         }
         setInterval(updateCurrentFile, 1000);
         
-        // Функция обновления прогресса
+        // Функция обновления прогресса с сервера и синхронизации с интерактивной полосой
         function updateProgress() {
             fetch("/progress")
                 .then(response => response.text())
@@ -299,6 +258,7 @@ HTML_PAGE = """<!DOCTYPE html>
                     const total = parseFloat(parts[1]);
                     if (total > 0) {
                         const percentage = (current / total) * 100;
+                        // Обновляем значение полосы, если пользователь не тянет её сейчас
                         if (!window.isDragging) {
                             progressBar.value = percentage;
                         }
@@ -313,6 +273,7 @@ HTML_PAGE = """<!DOCTYPE html>
         window.isDragging = false;
         var progressBar = document.getElementById("progressBar");
 
+        // Обновляем данные о текущем времени и длительности
         setInterval(function() {
           fetch("/progress")
             .then(response => response.text())
@@ -325,12 +286,14 @@ HTML_PAGE = """<!DOCTYPE html>
             });
         }, 1000);
 
+        // Обработка начала перетаскивания
         progressBar.addEventListener("mousedown", function() {
           window.isDragging = true;
         });
         progressBar.addEventListener("touchstart", function() {
           window.isDragging = true;
         });
+        // По окончании перетаскивания – вычисляем смещение и отправляем команду
         progressBar.addEventListener("mouseup", function() {
           window.isDragging = false;
           handleSliderChange();
@@ -353,78 +316,33 @@ HTML_PAGE = """<!DOCTYPE html>
             }
           }
         }
-        setInterval(updateProgress, 1000);
+                setInterval(updateProgress, 1000);
         function seekToPosition() {
+            const progressBar = document.getElementById("progressBar");
             const seekTime = progressBar.value / 100 * parseFloat(progressBar.max);
             fetch("/seek_to?time=" + encodeURIComponent(seekTime))
                 .then(response => response.text())
                 .then(data => console.log(data));
         }
-        progressBar.addEventListener("input", seekToPosition);
-        
-        // Функция обновления плейлиста с сохранением скролла и подсветкой текущего файла
+        document.getElementById("progressBar").addEventListener("input", seekToPosition);
         function updatePlaylist() {
             fetch("/playlist")
                 .then(response => response.text())
                 .then(data => {
-                    let newHTML = "";
-                    if(data.indexOf("<li") !== -1) {
-                        let temp = document.createElement("div");
-                        temp.innerHTML = "<ul>" + data + "</ul>";
-                        let items = temp.querySelectorAll("li");
-                        items.forEach((li, index) => {
-                            newHTML += `<option value="${index}">${li.innerHTML}</option>`;
-                        });
-                    } else {
-                        newHTML = data;
-                    }
-                    newHTML = newHTML.trim();
-                    let scrollPos = playlistSelect.scrollTop;
-                    if(!playlistInteracting && newHTML !== lastPlaylistData) {
-                        playlistSelect.innerHTML = newHTML;
-                        lastPlaylistData = newHTML;
-                        playlistSelect.scrollTop = scrollPos;
-                    }
-                    // Для мобильных браузеров: установка selectedIndex для выделения текущего файла
-                    fetch("/current_file")
-                        .then(resp => resp.text())
-                        .then(currentFile => {
-                            currentFile = currentFile.trim();
-                            let found = false;
-                            for (let i = 0; i < playlistSelect.options.length; i++) {
-                                let option = playlistSelect.options[i];
-                                if (currentFile && option.textContent.indexOf(currentFile) !== -1) {
-                                    playlistSelect.selectedIndex = i;
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) {
-                                playlistSelect.selectedIndex = -1;
-                            }
-                        });
+                    document.getElementById("playlistItems").innerHTML = data;
                 });
         }
         setInterval(updatePlaylist, 1000);
-        
         function openPlaylistModal() {
             document.getElementById("playlistModal").style.display = "block";
         }
         function closePlaylistModal() {
             document.getElementById("playlistModal").style.display = "none";
         }
-        // При выборе файла отправляем команду плееру и закрываем модальное окно
-        playlistSelect.addEventListener("change", function() {
-            var index = this.value;
-            playFile(index);
-        });
         function playFile(index) {
             fetch("/play_file?index=" + encodeURIComponent(index))
                 .then(response => response.text())
-                .then(data => {
-                    console.log(data);
-                    closePlaylistModal();
-                });
+                .then(data => console.log(data));
         }
     </script>
 </body>
