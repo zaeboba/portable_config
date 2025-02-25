@@ -61,18 +61,18 @@ HTML_PAGE = """<!DOCTYPE html>
         background-color: var(--ctp-mocha-surface1);
         border: none;
         border-radius: 10px;
-        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0,0,0,0.2);
         cursor: pointer;
         transition: all 0.1s ease;
         outline: none;
     }
     .small-button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0,0,0,0.25);
     }
     .small-button:active {
         transform: translateY(4px);
-        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0,0,0,0.2);
     }
     /* Грид для остальных кнопок */
     .controls {
@@ -91,18 +91,18 @@ HTML_PAGE = """<!DOCTYPE html>
         background-color: var(--ctp-mocha-surface1);
         border: none;
         border-radius: 10px;
-        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 6px var(--ctp-mocha-surface0), 0 10px 15px rgba(0,0,0,0.2);
         cursor: pointer;
         transition: all 0.1s ease;
         outline: none;
     }
     button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 8px var(--ctp-mocha-surface0), 0 12px 20px rgba(0,0,0,0.25);
     }
     button:active {
         transform: translateY(4px);
-        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px var(--ctp-mocha-surface0), 0 5px 10px rgba(0,0,0,0.2);
     }
     select,
     input[type="text"] {
@@ -131,7 +131,7 @@ HTML_PAGE = """<!DOCTYPE html>
         top: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
+        background-color: rgba(0,0,0,0.7);
     }
     .modal-content {
         background-color: var(--ctp-mocha-surface0);
@@ -156,7 +156,6 @@ HTML_PAGE = """<!DOCTYPE html>
         text-decoration: none;
         cursor: pointer;
     }
-    /* Обертка для блока с Аудио, Субтитрами, прогрессом и URL */
     .lower-section {
         margin-top: 30px;
     }
@@ -182,6 +181,11 @@ HTML_PAGE = """<!DOCTYPE html>
     #playlistSelect option:last-child {
         border-bottom: none;
     }
+    /* Класс для подсветки текущего файла на десктопе */
+    #playlistSelect option.currentOption {
+        background-color: var(--ctp-mocha-lavender) !important;
+        color: black !important;
+    }
     /* Медиа-запрос для мобильных устройств */
     @media (max-width: 600px) {
         .modal-content {
@@ -194,239 +198,253 @@ HTML_PAGE = """<!DOCTYPE html>
   </style>
 </head>
 <body>
-    <div id="currentFile">Нет файла</div>
-    <h2>MPV Remote Control</h2>
+  <div id="currentFile">Нет файла</div>
+  <h2>MPV Remote Control</h2>
+  
+  <!-- Группа кнопок Play, Pause, Stop -->
+  <div class="control-group-inline">
+      <button class="small-button" onclick="sendCommand('play')">▶️ Play</button>
+      <button class="small-button" onclick="sendCommand('pause')">⏸️ Pause</button>
+      <button class="small-button" onclick="sendCommand('stop')">⏹️ Stop</button>
+  </div>
+  
+  <!-- Остальные кнопки управления -->
+  <div class="controls">
+      <button onclick="sendCommand('seek_backward')">⏪ -10 сек</button>
+      <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
+      <button onclick="sendCommand('voldown')">🔉 Громкость ➖</button>
+      <button onclick="sendCommand('volup')">🔊 Громкость ➕</button>
+      <button onclick="sendCommand('fullscreen')">🔲 Fullscreen</button>
+      <button onclick="sendCommand('sub_toggle')">📝 Subtitles</button>
+  </div>
+  
+  <!-- Кнопка Плейлист -->
+  <button onclick="openPlaylistModal()">Плейлист 📜</button>
+  
+  <!-- Блок для элементов ниже, с дополнительным отступом сверху -->
+  <div class="lower-section">
+    <label for="audioTrack">Аудио:</label>
+    <select id="audioTrack" onchange="sendTrackCommand('audio', this.value)">
+        <!-- AUDIO_TRACKS -->
+    </select>
     
-    <!-- Группа кнопок Play, Pause, Stop -->
-    <div class="control-group-inline">
-        <button class="small-button" onclick="sendCommand('play')">▶️ Play</button>
-        <button class="small-button" onclick="sendCommand('pause')">⏸️ Pause</button>
-        <button class="small-button" onclick="sendCommand('stop')">⏹️ Stop</button>
-    </div>
+    <label for="subTrack">Субтитры:</label>
+    <select id="subTrack" onchange="sendTrackCommand('sub', this.value)">
+        <!-- SUB_TRACKS -->
+    </select>
     
-    <!-- Остальные кнопки управления -->
-    <div class="controls">
-        <button onclick="sendCommand('seek_backward')">⏪ -10 сек</button>
-        <button onclick="sendCommand('seek_forward')">⏩ +10 сек</button>
-        <button onclick="sendCommand('voldown')">🔉 Громкость ➖</button>
-        <button onclick="sendCommand('volup')">🔊 Громкость ➕</button>
-        <button onclick="sendCommand('fullscreen')">🔲 Fullscreen</button>
-        <button onclick="sendCommand('sub_toggle')">📝 Subtitles</button>
-    </div>
+    <!-- Полоса прогресса -->
+    <input type="range" id="progressBar" min="0" max="100" value="0">
     
-    <!-- Кнопка Плейлист -->
-    <button onclick="openPlaylistModal()">Плейлист 📜</button>
+    <!-- Поле ввода URL -->
+    <input type="text" id="urlInput" placeholder="Вставьте ссылку сюда...">
+    <button onclick="sendLink()">Load URL</button>
+  </div>
+
+  <!-- Модальное окно для плейлиста -->
+  <div id="playlistModal" class="modal">
+      <div class="modal-content">
+          <span class="close" onclick="closePlaylistModal()">&times;</span>
+          <h2>Плейлист</h2>
+          <select id="playlistSelect" size="10">
+              <!-- PLAYLIST_ITEMS -->
+          </select>
+      </div>
+  </div>
+
+  <script>
+    // Флаги для предотвращения обновления во время взаимодействия
+    let lastPlaylistData = "";
+    let playlistInteracting = false;
+    const playlistSelect = document.getElementById("playlistSelect");
+    let scrollTimeout;
+
+    // Если пользователь скроллит или нажимает на список, откладываем обновление
+    playlistSelect.addEventListener("scroll", () => {
+      playlistInteracting = true;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => { playlistInteracting = false; }, 1500);
+    });
+    playlistSelect.addEventListener("touchstart", () => { playlistInteracting = true; });
+    playlistSelect.addEventListener("mousedown", () => { playlistInteracting = true; });
+    playlistSelect.addEventListener("touchend", () => { playlistInteracting = false; });
+    playlistSelect.addEventListener("mouseup", () => { playlistInteracting = false; });
+
+    function sendCommand(cmd) {
+      fetch("/" + cmd)
+          .then(response => response.text())
+          .then(data => console.log(data));
+    }
+    function sendTrackCommand(type, value) {
+      fetch("/" + type + "_track_" + value)
+          .then(response => response.text())
+          .then(data => console.log(data));
+    }
+    function sendLink() {
+      const input = document.getElementById("urlInput");
+      const url = input.value;
+      if(url) {
+          fetch("/load?url=" + encodeURIComponent(url))
+              .then(response => response.text())
+              .then(data => {
+                  console.log(data);
+                  input.value = "";
+              });
+      }
+    }
+    function updateCurrentFile() {
+      fetch("/current_file")
+          .then(response => response.text())
+          .then(data => { document.getElementById("currentFile").textContent = data; });
+    }
+    setInterval(updateCurrentFile, 1000);
     
-    <!-- Блок для элементов ниже, с дополнительным отступом сверху -->
-    <div class="lower-section">
-      <label for="audioTrack">Аудио:</label>
-      <select id="audioTrack" onchange="sendTrackCommand('audio', this.value)">
-          <!-- AUDIO_TRACKS -->
-      </select>
-      
-      <label for="subTrack">Субтитры:</label>
-      <select id="subTrack" onchange="sendTrackCommand('sub', this.value)">
-          <!-- SUB_TRACKS -->
-      </select>
-      
-      <!-- Совмещенная интерактивная полоса прогресса (отображение и перемотка) -->
-      <input type="range" id="progressBar" min="0" max="100" value="0">
-      
-      <!-- Блок для ввода URL -->
-      <input type="text" id="urlInput" placeholder="Вставьте ссылку сюда...">
-      <button onclick="sendLink()">Load URL</button>
-    </div>
+    // Обновление прогресса
+    function updateProgress() {
+      fetch("/progress")
+          .then(response => response.text())
+          .then(data => {
+              const parts = data.split("/");
+              const current = parseFloat(parts[0]);
+              const total = parseFloat(parts[1]);
+              if (total > 0) {
+                  const percentage = (current / total) * 100;
+                  if (!window.isDragging) {
+                      progressBar.value = percentage;
+                  }
+              }
+          });
+    }
+    setInterval(updateProgress, 1000);
 
-    <!-- Модальное окно для плейлиста -->
-    <div id="playlistModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closePlaylistModal()">&times;</span>
-            <h2>Плейлист</h2>
-            <select id="playlistSelect" size="10">
-                <!-- PLAYLIST_ITEMS -->
-            </select>
-        </div>
-    </div>
+    // Полоса прогресса
+    var currentTimeSec = 0;
+    var totalTimeSec = 0;
+    window.isDragging = false;
+    var progressBar = document.getElementById("progressBar");
 
-    <script>
-        // Флаги для предотвращения обновления при взаимодействии
-        let lastPlaylistData = "";
-        let playlistInteracting = false;
-        const playlistSelect = document.getElementById("playlistSelect");
-
-        // Отслеживаем касания/нажатия, чтобы не обновлять список, когда пользователь выбирает файл
-        playlistSelect.addEventListener("touchstart", () => { playlistInteracting = true; });
-        playlistSelect.addEventListener("mousedown", () => { playlistInteracting = true; });
-        playlistSelect.addEventListener("touchend", () => { playlistInteracting = false; });
-        playlistSelect.addEventListener("mouseup", () => { playlistInteracting = false; });
-
-        function sendCommand(cmd) {
-            fetch("/" + cmd)
-                .then(response => response.text())
-                .then(data => console.log(data));
-        }
-        function sendTrackCommand(type, value) {
-            fetch("/" + type + "_track_" + value)
-                .then(response => response.text())
-                .then(data => console.log(data));
-        }
-        function sendLink() {
-            const input = document.getElementById("urlInput");
-            const url = input.value;
-            if(url) {
-                fetch("/load?url=" + encodeURIComponent(url))
-                    .then(response => response.text())
-                    .then(data => {
-                        console.log(data);
-                        input.value = "";
-                    });
-            }
-        }
-        function updateCurrentFile() {
-            fetch("/current_file")
-                .then(response => response.text())
-                .then(data => { document.getElementById("currentFile").textContent = data; });
-        }
-        setInterval(updateCurrentFile, 1000);
-        
-        // Функция обновления прогресса
-        function updateProgress() {
-            fetch("/progress")
-                .then(response => response.text())
-                .then(data => {
-                    const parts = data.split("/");
-                    const current = parseFloat(parts[0]);
-                    const total = parseFloat(parts[1]);
-                    if (total > 0) {
-                        const percentage = (current / total) * 100;
-                        if (!window.isDragging) {
-                            progressBar.value = percentage;
-                        }
-                    }
-                });
-        }
-        setInterval(updateProgress, 1000);
-
-        // Интерактивность полосы прогресса
-        var currentTimeSec = 0;
-        var totalTimeSec = 0;
-        window.isDragging = false;
-        var progressBar = document.getElementById("progressBar");
-
-        setInterval(function() {
-          fetch("/progress")
-            .then(response => response.text())
-            .then(data => {
+    setInterval(function() {
+      fetch("/progress")
+          .then(response => response.text())
+          .then(data => {
               var parts = data.split("/");
               if (parts.length === 2) {
-                currentTimeSec = parseFloat(parts[0]);
-                totalTimeSec = parseFloat(parts[1]);
+                  currentTimeSec = parseFloat(parts[0]);
+                  totalTimeSec = parseFloat(parts[1]);
               }
-            });
-        }, 1000);
+          });
+    }, 1000);
 
-        progressBar.addEventListener("mousedown", function() {
-          window.isDragging = true;
-        });
-        progressBar.addEventListener("touchstart", function() {
-          window.isDragging = true;
-        });
-        progressBar.addEventListener("mouseup", function() {
-          window.isDragging = false;
-          handleSliderChange();
-        });
-        progressBar.addEventListener("touchend", function() {
-          window.isDragging = false;
-          handleSliderChange();
-        });
-        progressBar.addEventListener("change", handleSliderChange);
+    progressBar.addEventListener("mousedown", function() { window.isDragging = true; });
+    progressBar.addEventListener("touchstart", function() { window.isDragging = true; });
+    progressBar.addEventListener("mouseup", function() { window.isDragging = false; handleSliderChange(); });
+    progressBar.addEventListener("touchend", function() { window.isDragging = false; handleSliderChange(); });
+    progressBar.addEventListener("change", handleSliderChange);
 
-        function handleSliderChange() {
-          var sliderPercent = parseFloat(progressBar.value);
-          if (totalTimeSec > 0) {
-            var targetTime = sliderPercent / 100 * totalTimeSec;
-            var offset = Math.round(targetTime - currentTimeSec);
-            if (offset !== 0) {
+    function handleSliderChange() {
+      var sliderPercent = parseFloat(progressBar.value);
+      if (totalTimeSec > 0) {
+          var targetTime = sliderPercent / 100 * totalTimeSec;
+          var offset = Math.round(targetTime - currentTimeSec);
+          if (offset !== 0) {
               fetch("/relative_seek?offset=" + encodeURIComponent(offset))
-                .then(response => response.text())
-                .then(data => console.log("Relative seek:", data));
-            }
+                  .then(response => response.text())
+                  .then(data => console.log("Relative seek:", data));
           }
-        }
-        setInterval(updateProgress, 1000);
-        function seekToPosition() {
-            const seekTime = progressBar.value / 100 * parseFloat(progressBar.max);
-            fetch("/seek_to?time=" + encodeURIComponent(seekTime))
-                .then(response => response.text())
-                .then(data => console.log(data));
-        }
-        progressBar.addEventListener("input", seekToPosition);
-        
-        // Функция обновления плейлиста с сохранением скролла и подсветкой текущего файла
-        function updatePlaylist() {
-            fetch("/playlist")
-                .then(response => response.text())
-                .then(data => {
-                    let newHTML = "";
-                    if(data.indexOf("<li") !== -1) {
-                        let temp = document.createElement("div");
-                        temp.innerHTML = "<ul>" + data + "</ul>";
-                        let items = temp.querySelectorAll("li");
-                        items.forEach((li, index) => {
-                            newHTML += `<option value="${index}">${li.innerHTML}</option>`;
-                        });
-                    } else {
-                        newHTML = data;
-                    }
-                    newHTML = newHTML.trim();
-                    let scrollPos = playlistSelect.scrollTop;
-                    if(!playlistInteracting && newHTML !== lastPlaylistData) {
-                        playlistSelect.innerHTML = newHTML;
-                        lastPlaylistData = newHTML;
-                        playlistSelect.scrollTop = scrollPos;
-                    }
-                    // Для мобильных браузеров: установка selectedIndex для выделения текущего файла
-                    fetch("/current_file")
-                        .then(resp => resp.text())
-                        .then(currentFile => {
-                            currentFile = currentFile.trim();
-                            let found = false;
-                            for (let i = 0; i < playlistSelect.options.length; i++) {
-                                let option = playlistSelect.options[i];
-                                if (currentFile && option.textContent.indexOf(currentFile) !== -1) {
-                                    playlistSelect.selectedIndex = i;
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) {
-                                playlistSelect.selectedIndex = -1;
-                            }
-                        });
-                });
-        }
-        setInterval(updatePlaylist, 1000);
-        
-        function openPlaylistModal() {
-            document.getElementById("playlistModal").style.display = "block";
-        }
-        function closePlaylistModal() {
-            document.getElementById("playlistModal").style.display = "none";
-        }
-        // При выборе файла отправляем команду плееру и закрываем модальное окно
-        playlistSelect.addEventListener("change", function() {
-            var index = this.value;
-            playFile(index);
-        });
-        function playFile(index) {
-            fetch("/play_file?index=" + encodeURIComponent(index))
-                .then(response => response.text())
-                .then(data => {
-                    console.log(data);
-                    closePlaylistModal();
-                });
-        }
-    </script>
+      }
+    }
+    setInterval(updateProgress, 1000);
+    progressBar.addEventListener("input", function() {
+      const seekTime = progressBar.value / 100 * parseFloat(progressBar.max);
+      fetch("/seek_to?time=" + encodeURIComponent(seekTime))
+          .then(response => response.text())
+          .then(data => console.log(data));
+    });
+    
+    // Функция обновления плейлиста:
+    // Если пользователь не взаимодействует, обновляем innerHTML, сохраняя скролл.
+    // Затем, в зависимости от ширины окна, обновляем выделение текущего файла:
+    // На мобильном — через установку selectedIndex,
+    // на десктопе — через добавление CSS-класса currentOption.
+    function updatePlaylist() {
+      fetch("/playlist")
+          .then(response => response.text())
+          .then(data => {
+              let newHTML = "";
+              if(data.indexOf("<li") !== -1) {
+                  let temp = document.createElement("div");
+                  temp.innerHTML = "<ul>" + data + "</ul>";
+                  let items = temp.querySelectorAll("li");
+                  items.forEach((li, index) => {
+                      newHTML += `<option value="${index}">${li.innerHTML}</option>`;
+                  });
+              } else {
+                  newHTML = data;
+              }
+              newHTML = newHTML.trim();
+              
+              if (!playlistInteracting && newHTML !== lastPlaylistData) {
+                  let scrollPos = playlistSelect.scrollTop;
+                  playlistSelect.innerHTML = newHTML;
+                  lastPlaylistData = newHTML;
+                  playlistSelect.scrollTop = scrollPos;
+              }
+              // Обновляем выделение текущего файла
+              if (!playlistInteracting) {
+                  fetch("/current_file")
+                      .then(resp => resp.text())
+                      .then(currentFile => {
+                          currentFile = currentFile.trim();
+                          let foundIndex = -1;
+                          for (let i = 0; i < playlistSelect.options.length; i++) {
+                              let option = playlistSelect.options[i];
+                              if (currentFile && option.textContent.indexOf(currentFile) !== -1) {
+                                  foundIndex = i;
+                                  break;
+                              }
+                          }
+                          if (window.innerWidth < 600) {
+                              // На мобильном устанавливаем selectedIndex
+                              if (foundIndex !== -1) {
+                                  playlistSelect.selectedIndex = foundIndex;
+                              }
+                          } else {
+                              // На десктопе используем класс для подсветки
+                              for (let i = 0; i < playlistSelect.options.length; i++) {
+                                  let option = playlistSelect.options[i];
+                                  if (i === foundIndex) {
+                                      option.classList.add("currentOption");
+                                  } else {
+                                      option.classList.remove("currentOption");
+                                  }
+                              }
+                          }
+                      });
+              }
+          });
+    }
+    setInterval(updatePlaylist, 1000);
+    
+    function openPlaylistModal() {
+      document.getElementById("playlistModal").style.display = "block";
+    }
+    function closePlaylistModal() {
+      document.getElementById("playlistModal").style.display = "none";
+    }
+    // При выборе файла отправляем команду плееру и закрываем окно
+    playlistSelect.addEventListener("change", function() {
+      var index = this.value;
+      playFile(index);
+    });
+    function playFile(index) {
+      fetch("/play_file?index=" + encodeURIComponent(index))
+          .then(response => response.text())
+          .then(data => {
+              console.log(data);
+              closePlaylistModal();
+          });
+    }
+  </script>
 </body>
 </html>
 """
