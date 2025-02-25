@@ -21,7 +21,7 @@ HTML_PAGE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MPV Remote</title>
+  <title>MPV 🕹️</title>
   <style>
     :root {
         --ctp-mocha-base: #1E1E2E;
@@ -199,7 +199,7 @@ HTML_PAGE = """<!DOCTYPE html>
 </head>
 <body>
   <div id="currentFile">Нет файла</div>
-  <h2>MPV Remote Control</h2>
+  <h2>MPV <span style="font-size: 1em;">🕹️</span></h2>
   
   <!-- Группа кнопок Play, Pause, Stop -->
   <div class="control-group-inline">
