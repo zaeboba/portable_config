@@ -34,11 +34,10 @@ local parent_id = {"", "", "", ""}
 local selection = {1, 1, 1, 1}
 local list_start = {1, 1, 1, 1}
 local layer = 1
-local current_selection = 1
 
 local items = {}
 local ow, oh, op = 0, 0, 0
-local async = nil
+local async = {} -- 1 = image thread, 2 = request thread
 
 local align_x = 1 -- 1 = left, 2 = center, 3 = right
 local align_y = 4 -- 4 = top, 8 = center, 0 = bottom
@@ -76,6 +75,22 @@ local function send_request(method, url)
         return utils.parse_json(request.stdout)
     end
     return nil
+end
+
+local function clear_request(success, result, error)
+    async[2] = nil
+end
+
+local function send_request_async(method, url)
+    if #api_key > 0 and async[2] == nil then -- multiple requests are just discarded
+        async[2] = mp.command_native_async({
+            name = "subprocess",
+            playback_only = false,
+            args = {"curl", "-X", method, url, "-H", "Authorization: MediaBrowser Token=\""..api_key.."\""}
+        }, function(success, result, error) clear_request(success, result, error) end)
+        return 0
+    end
+    return 1
 end
 
 local function line_break(str, flags, space)
@@ -178,12 +193,12 @@ local function update_image(item)
     local width = math.floor(ow/(3*scale))
     local height = 0
     local filepath = ""
-    if async ~= nil then mp.abort_async_command(async) end
+    if async[1] ~= nil then mp.abort_async_command(async[1]) end
     mp.commandv("overlay-remove", "0")
     if item.ImageTags.Primary ~= nil then
         height = math.floor(width/item.PrimaryImageAspectRatio)
         filepath = options.image_path.."/"..item.Id.."_"..width.."_"..height..".bgra"
-        async = mp.command_native_async({
+        async[1] = mp.command_native_async({
             name = "subprocess",
             playback_only = false,
             args = { "mpv", options.url.."/Items/"..item.Id.."/Images/Primary?width="..width.."&height="..height, "--no-config", "--msg-level=all=no", "--vf=lavfi=[format=bgra]", "--of=rawvideo", "--o="..filepath }
@@ -243,12 +258,12 @@ local function update_overlay()
     else
         items = json.Items
     end
-    ow, oh, op = mp.get_osd_size()
     update_data()
 end
 
 local function width_change(name, data)
-    if shown then update_overlay() end
+    ow, oh, op = mp.get_osd_size()
+    if shown then update_image(items[selection[layer]]) end
 end
 
 local function play_video()
@@ -264,7 +279,6 @@ local function play_video()
     end
     mp.commandv("loadfile", options.url.."/Videos/"..items[selection[layer]].Id.."/stream?static=true", "insert-at-play", selection[layer]-1)
     mp.set_property("force-media-title", items[selection[layer]].Name)
-    current_selection = selection[layer]
 end
 
 move_up = function()
@@ -376,14 +390,35 @@ local function disable_overlay()
     toggle_overlay()
 end
 
+local function split(inputstr, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
 local function check_percent()
     local pos = mp.get_property_number("percent-pos")
-    if pos then
-        if pos > 95 and current_selection ~= nil then
-            send_request("POST", options.url.."/Users/"..user_id.."/PlayedItems/"..items[current_selection].Id)
-            items[current_selection].UserData.Played = true
-            current_selection = nil
+    if pos == nil then return end
+    if pos <= 94 or #items == 0 then return end
+    local path = mp.get_property("path")
+    if path == nil then return end
+    local video_id = split(path, '/')[4]
+    local UserData = nil -- pointer
+    for i = 1, #items do
+        if items[i].Id == video_id then
+            UserData = items[i].UserData
+            break
         end
+    end
+    if UserData == nil then return end
+    if UserData.Played == false then
+        local err = send_request_async("POST", options.url.."/Users/"..user_id.."/PlayedItems/"..video_id)
+        if err == 0 then UserData.Played = true end
     end
 end
 
