@@ -5,7 +5,7 @@ MPV TorrServer Browser
 
 Created by: zaeboba
 License: 🖕
-Version: 13.11.2025
+Version: 16.11.2025
 --]]
 
 local mp = require("mp")
@@ -45,7 +45,7 @@ if not input_success then
 	local input_counter = 1
 
 	local function pack(...)
-		local t = {...}
+		local t = { ... }
 		t.n = select("#", ...)
 		return t
 	end
@@ -56,13 +56,16 @@ if not input_success then
 		return {
 			response = response_string,
 			version = "0.1.0",
-			id = input_name..'/'..(options.id or ""),
+			id = input_name .. "/" .. (options.id or ""),
 			source = input_name,
-			request_text = ("[%s] %s"):format(options.source or input_name, options.request_text or options.text or "requesting user input:"),
+			request_text = ("[%s] %s"):format(
+				options.source or input_name,
+				options.request_text or options.text or "requesting user input:"
+			),
 			default_input = options.default_input,
 			cursor_pos = tonumber(options.cursor_pos),
 			queueable = options.queueable and true,
-			replace = options.replace and true
+			replace = options.replace and true,
 		}
 	end
 
@@ -74,14 +77,14 @@ if not input_success then
 
 	function input_mod.get_user_input(fn, options, ...)
 		options = options or {}
-		local response_string = input_name.."/__user_input_request/"..input_counter
+		local response_string = input_name .. "/__user_input_request/" .. input_counter
 		input_counter = input_counter + 1
 
 		local request = {
 			uid = response_string,
 			passthrough_args = pack(...),
 			callback = fn,
-			pending = true
+			pending = true,
 		}
 
 		mp.register_script_message(response_string, function(response)
@@ -90,7 +93,11 @@ if not input_success then
 
 			local parsed = utils.parse_json(response)
 			if parsed then
-				request.callback(parsed.line, parsed.err, unpack(request.passthrough_args, 1, request.passthrough_args.n))
+				request.callback(
+					parsed.line,
+					parsed.err,
+					unpack(request.passthrough_args, 1, request.passthrough_args.n)
+				)
 			else
 				request.callback(nil, "Failed to parse response")
 			end
@@ -364,7 +371,10 @@ local function render_osd()
 	else
 		local title = "{\\fs24}{\\b1}Браузер TorrServer{\\b0}"
 		if state.current_view_type == "files" and #state.history > 0 then
-			title = title .. "\\N{\\fs16}{\\i1}Торрент: " .. (state.history[#state.history].name or "Неизвестно") .. "{\\i0}"
+			title = title
+				.. "\\N{\\fs16}{\\i1}Торрент: "
+				.. (state.history[#state.history].name or "Неизвестно")
+				.. "{\\i0}"
 		elseif state.current_view_type == "search" and state.search_query ~= "" then
 			title = title .. "\\N{\\fs16}{\\i1}Поиск: " .. state.search_query .. "{\\i0}"
 		end
@@ -459,7 +469,9 @@ local function load_search_results(query)
 		local parsed_items = parse_search_results(json_content)
 
 		if #parsed_items == 0 then
-			msg.warn("TorrServer Browser: Поиск не дал результатов или ошибка парсинга")
+			msg.warn(
+				"TorrServer Browser: Поиск не дал результатов или ошибка парсинга"
+			)
 			msg.debug("TorrServer Browser: JSON ответ: " .. json_content:sub(1, 500))
 			state.current_items = { { name = "Нет результатов поиска" } }
 			render_osd()
@@ -622,7 +634,8 @@ local function handle_key_press(key)
 				-- OSD закроется автоматически по событию file-loaded
 			else
 				msg.warn(
-					"Не удалось получить ссылку для результата поиска: " .. selected_item.name
+					"Не удалось получить ссылку для результата поиска: "
+						.. selected_item.name
 				)
 			end
 		elseif state.current_view_type == "files" then
@@ -691,7 +704,9 @@ end
 -- Функция для поиска
 local function search_input()
 	if not input_success then
-		msg.warn("Модуль user-input-module не найден. Установите его для использования поиска.")
+		msg.warn(
+			"Модуль user-input-module не найден. Установите его для использования поиска."
+		)
 		return
 	end
 
