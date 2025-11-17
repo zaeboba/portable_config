@@ -5,7 +5,7 @@ MPV TorrServer Browser
 
 Created by: zaeboba
 License: 🖕
-Version: 16.11.2025
+Version: 17.11.2025
 --]]
 
 local mp = require("mp")
@@ -120,7 +120,7 @@ local opts = {
 }
 opt.read_options(opts, mp.get_script_name())
 
-local OSD_VIEWPORT_SIZE = 29 -- как в jellyfin.lua
+local OSD_VIEWPORT_SIZE = 29
 
 local state = {
 	is_visible = false,
@@ -141,7 +141,7 @@ local align_y = 4 -- 4 = top, 8 = center, 0 = bottom
 local align_main = "{\\a0}"
 local align_other = "{\\a7}"
 
--- Цвета как в jellyfin.lua
+-- Цвета
 local colour_default = "FFFFFF"
 local colour_selected = "00FFFF"
 local colour_watched = "A0A0A0"
