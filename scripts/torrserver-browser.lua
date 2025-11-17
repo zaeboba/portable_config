@@ -582,6 +582,13 @@ local function load_items(view_type, data)
 end
 
 local function handle_key_press(key)
+	if key == "ESC" then
+		if state.is_visible then
+			toggle_browser(false)
+		end
+		return
+	end
+
 	if #state.current_items == 0 then
 		return
 	end
@@ -688,14 +695,8 @@ local function handle_key_press(key)
 				state.current_torrent_hash = nil
 			end
 		else
-			toggle_browser()
+			toggle_browser(false)
 		end
-	elseif key == "ESC" then
-		-- Закрываем OSD при нажатии ESC
-		if state.is_visible then
-			toggle_browser()
-		end
-		return
 	end
 
 	render_osd()
@@ -717,8 +718,19 @@ local function search_input()
 	end)
 end
 
-local function toggle_browser()
-	state.is_visible = not state.is_visible
+local function toggle_browser(force_state)
+	local desired_state
+	if force_state == nil then
+		desired_state = not state.is_visible
+	else
+		desired_state = force_state and true or false
+	end
+
+	if state.is_visible == desired_state then
+		return
+	end
+
+	state.is_visible = desired_state
 
 	msg.info("TorrServer Browser: " .. (state.is_visible and "ON" or "OFF"))
 
@@ -755,7 +767,9 @@ local function toggle_browser()
 
 		-- Добавляем клавишу ESC для закрытия OSD
 		mp.add_forced_key_binding("ESC", "torr-nav-esc", function()
-			handle_key_press("ESC")
+			mp.add_timeout(0, function()
+				toggle_browser(false)
+			end)
 		end)
 
 		if #state.current_items == 0 then
@@ -796,7 +810,7 @@ mp.register_event("file-loaded", function()
 	if state.is_visible and state.is_loading_playlist then
 		state.is_loading_playlist = false
 
-		toggle_browser()
+		toggle_browser(false)
 	end
 end)
 
