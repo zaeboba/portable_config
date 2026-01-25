@@ -3,7 +3,6 @@
 	Look for updates here
 		https://github.com/EmperorPenguin18/mpv-jellyfin
 ]]
-
 local opt = require("mp.options")
 local utils = require("mp.utils")
 local msg = require("mp.msg")
@@ -25,8 +24,12 @@ local options = {
 	colour_default = "FFFFFF",
 	colour_selected = "FF",
 	colour_watched = "A0A0A0",
+	sort_mode = 0,
 }
 opt.read_options(options, mp.get_script_name())
+if options.url:sub(-1) == "/" then
+	options.url = options.url:sub(1, -2)
+end
 
 local overlay = mp.create_osd_overlay("ass-events")
 local meta_overlay = mp.create_osd_overlay("ass-events")
@@ -62,7 +65,7 @@ local move_left -- function
 
 local function mkdir(path)
 	if is_windows then
-		--io.popen('mkdir "'..path..'"')
+		os.execute('mkdir "' .. path .. '"')
 	else
 		os.execute('mkdir -p "' .. path .. '"')
 	end
@@ -298,7 +301,9 @@ local function update_overlay()
 		.. "&parentId="
 		.. parent_id[layer]
 		.. "&enableImageTypes=Primary&imageTypeLimit=1&fields=PrimaryImageAspectRatio,Taglines,Overview,MediaSources"
-	if layer == 2 then
+	if options.sort_mode == 1 then
+		base_url = base_url .. "&sortBy=PremiereDate"
+	elseif layer == 2 then
 		base_url = base_url .. "&sortBy=SortName"
 	else
 		-- nothing
@@ -415,25 +420,41 @@ local function key_left()
 end
 
 local function connect()
-	local request = mp.command_native({
+	local req = mp.command_native({
 		name = "subprocess",
 		capture_stdout = true,
 		capture_stderr = true,
 		playback_only = false,
 		args = {
 			"curl",
+			"-sS",
+			"-X",
+			"POST",
 			options.url .. "/Users/AuthenticateByName",
 			"-H",
-			"accept: application/json",
+			"Accept: application/json",
 			"-H",
-			"content-type: application/json",
+			"Content-Type: application/json",
 			"-H",
-			'x-emby-authorization: MediaBrowser Client="Custom Client", Device="Custom Device", DeviceId="1", Version="0.0.1"',
+			"Authorization: MediaBrowser Client=mpv, Device=mpv, DeviceId=mpv, Version=1.0",
 			"-d",
-			'{"username":"' .. options.username .. '","Pw":"' .. options.password .. '"}',
+			string.format('{"Username":"%s","Pw":"%s"}', options.username, options.password),
 		},
 	})
-	local result = utils.parse_json(request.stdout)
+
+	if not req or not req.stdout or #req.stdout == 0 then
+		msg.error("Jellyfin auth failed: empty response")
+		msg.error(req and req.stderr or "")
+		return
+	end
+
+	local result = utils.parse_json(req.stdout)
+	if not result or not result.User or not result.AccessToken then
+		msg.error("Jellyfin auth failed: invalid JSON")
+		msg.error(req.stdout)
+		return
+	end
+
 	user_id = result.User.Id
 	api_key = result.AccessToken
 end
@@ -609,23 +630,28 @@ local function enable_overlay_on_idle(_, is_idle)
 	end
 end
 
-mp.add_periodic_timer(1, check_percent)
-mp.add_key_binding("Ctrl+j", "jf", toggle_overlay)
-mp.add_key_binding("ESC", nil, disable_overlay)
-if options.hide_images ~= "on" then
-	mkdir(options.image_path)
-	mp.observe_property("osd-width", "number", width_change)
-end
-mp.observe_property("osd-align-x", "string", align_x_change)
-mp.observe_property("osd-align-y", "string", align_y_change)
-mp.register_event("end-file", unpause)
-if input_success then
-	mp.add_key_binding("Ctrl+f", "jf_search", search_input)
-end
-mp.register_event("file-loaded", add_subs)
-if options.show_by_default == "on" then
-	toggle_overlay()
-end
-if options.show_on_idle == "on" then
-	mp.observe_property("idle-active", "bool", enable_overlay_on_idle)
+local version_num = tonumber(string.sub(mp.get_property("mpv-version"), 8, 11))
+if version_num < 38.0 then
+	print("Minimum mpv version not met for mpv-jellyfin script.")
+else
+	mp.add_periodic_timer(1, check_percent)
+	mp.add_key_binding("Ctrl+j", "jf", toggle_overlay)
+	mp.add_key_binding("ESC", nil, disable_overlay)
+	if options.hide_images ~= "on" then
+		mkdir(options.image_path)
+		mp.observe_property("osd-width", "number", width_change)
+	end
+	mp.observe_property("osd-align-x", "string", align_x_change)
+	mp.observe_property("osd-align-y", "string", align_y_change)
+	mp.register_event("end-file", unpause)
+	if input_success then
+		mp.add_key_binding("Ctrl+f", "jf_search", search_input)
+	end
+	mp.register_event("file-loaded", add_subs)
+	if options.show_by_default == "on" then
+		toggle_overlay()
+	end
+	if options.show_on_idle == "on" then
+		mp.observe_property("idle-active", "bool", enable_overlay_on_idle)
+	end
 end
